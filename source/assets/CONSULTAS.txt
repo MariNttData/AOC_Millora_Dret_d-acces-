@@ -1,0 +1,19 @@
+--Query ETRAM BD(ETRAM20PCI)
+select * from ETRAM_TRAMIT a
+where a.DOCUMENT = 'INPUT';
+
+--Query eTAULER BD(ETAULER3PL)
+ select *
+ from ETAULER3PL.ET_EDICTE_HISTORIC EH
+ where eh.usuari_id = 'INPUT';
+ 
+--Query idCATMobil BD(IDCATMOBIL PRO ORA 12)
+SELECT * FROM IDCATMOBIL.IDCATSMS_REGISTRE r
+where r.document = 'INPUT';
+
+--Query EACAT PL BD(ORA12PRO)
+select * from usu_usuari a
+where a.identificador = 'INPUT';
+
+--Query representa BD(REPRESENTA)
+select * from representa.r_persona where valordocumentidentificatiu like 'INPUT%'; --DNI SIN LETRA
