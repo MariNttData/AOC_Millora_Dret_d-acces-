@@ -8,12 +8,18 @@ function get_oracle_connection() {
     $pass = 'Phuthee6jeec';
 
     $tns = "(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=$host)(PORT=$port))(CONNECT_DATA=(SERVICE_NAME=$service)))";
-    $conn = oci_connect($user, $pass, $tns);
-    if (!$conn) {
-        $e = oci_error();
-        throw new Exception('Oracle connect error: ' . ($e['message'] ?? 'unknown'));
+    if (function_exists('oci_connect')) {
+        $conn = oci_connect($user, $pass, $tns);
     } else {
-         error_log('Connected to Oracle database successfully.');
+        error_log('OCI8 extension is not available: please install/enable the php_oci8 extension or use an alternative driver.');
+        $conn = null;
+    }
+
+    if (!$conn) {
+        $e = (function_exists('oci_error') ? oci_error() : null);
+        error_log('Error to connect to Oracle database' . ($e ? ': ' . print_r($e, true) : ''));
+    } else {
+        error_log('Connected to Oracle database successfully.');
     }
     return $conn;   
 }

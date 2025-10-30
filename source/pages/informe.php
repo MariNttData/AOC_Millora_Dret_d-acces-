@@ -10,19 +10,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nif = isset($_POST['nifInput']) ? sanitize_nif($_POST['nifInput']) : '';
 }
 
-// Prepare the queries from CONSULTAS.txt, replacing 'INPUT' with a bind placeholder
 $queries = [
-    // ETRAM (example: MySQL table ETRAM_TRAMIT)
+    // ETRAM 
     [
         'type' => 'mysql',
-        'sql' => "select * from ETRAM_TRAMIT a where a.DOCUMENT = :input"
+        'sql' => "SELECT * from ETRAM20PCI.ETRAM_TRAMIT a where a.DOCUMENT = :input"
     ],
-    // ETAULER (example: MySQL schema ETAULER3PL)
+    // ETAULER 
     [
         'type' => 'mysql',
-        'sql' => "select * from ETAULER3PL.ET_EDICTE_HISTORIC EH where eh.usuari_id = :input"
+        'sql' => "SELECT * from ETAULER3PL.ET_EDICTE_HISTORIC EH where eh.usuari_id = :input"
     ],
-    // IDCATMOBIL (example: Oracle or MySQL)
+    // IDCATMOBIL 
     [
         'type' => 'mysql',
         'sql' => "SELECT * FROM IDCATMOBIL.IDCATSMS_REGISTRE r where r.document = :input"
@@ -30,13 +29,13 @@ $queries = [
     // EACAT PL
     [
         'type' => 'mysql',
-        'sql' => "select * from usu_usuari a where a.identificador = :input"
+        'sql' => "SELECT * from usu_usuari a where a.identificador = :input"
     ],
-    // REPRESENTA - uses LIKE 'INPUT%'
+    // REPRESENTA
     [
         'type' => 'mysql',
-        'sql' => "select * from representa.r_persona where valordocumentidentificatiu like :inputprefix"
-    ],
+        'sql' => "SELECT * from REPRESENTA.r_persona where valordocumentidentificatiu like :inputprefix"
+    ]
 ];
 
 // Use Oracle connection via oci8
@@ -116,7 +115,7 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
 
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 
 <head>
     <meta charset="UTF-8">
