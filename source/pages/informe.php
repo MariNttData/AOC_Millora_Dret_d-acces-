@@ -10,12 +10,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nif = isset($_POST['nifInput']) ? sanitize_nif($_POST['nifInput']) : '';
 }
 
-if ($nif === '') {
-    echo "<p>No s'ha enviat cap NIF. Torna enrere i introdueix un NIF.</p>";
-    echo "<p><a href=\"index.php\">Tornar</a></p>";
-    exit;
-}
-
 // Prepare the queries from CONSULTAS.txt, replacing 'INPUT' with a bind placeholder
 $queries = [
     // ETRAM (example: MySQL table ETRAM_TRAMIT)
@@ -120,44 +114,8 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
     return $rows;
 }
 
-?><!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="../dependencies/css/bootstrap.min.css"/>
-    <title>Informe: <?php echo htmlspecialchars($nif); ?></title>
-</head>
-<body>
-    <div class="container mt-4">
-        <h1 class="h5">Resultats per <?php echo htmlspecialchars($nif); ?></h1>
-
-        <?php
-        foreach ($queries as $i => $q) {
-            echo "<h3>Consulta " . ($i+1) . "</h3>";
-            try {
-                $stmt = $pdo->prepare($q['sql']);
-                if (strpos($q['sql'], ':inputprefix') !== false) {
-                    $param = $nif . '%';
-                    $stmt->bindValue(':inputprefix', $param, PDO::PARAM_STR);
-                } else {
-                    $stmt->bindValue(':input', $nif, PDO::PARAM_STR);
-                }
-                $stmt->execute();
-                $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                echo render_table($rows);
-            } catch (Exception $e) {
-                echo "<div class=\"alert alert-danger\">Error al executar la consulta: " . htmlspecialchars($e->getMessage()) . "</div>";
-            }
-        }
-        ?>
-
-        <p class="mt-3"><a href="index.php">Tornar</a></p>
-    </div>
-    <script src="../dependencies/js/bootstrap.min.js"></script>
-</body>
-</html>
-<!-- <!DOCTYPE html>
+?>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -184,42 +142,40 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
                             Enllaç a la FAQ
                         </a>
                     </div>
+                    <div class="text-center mt-4 mb-5">
+                        <a href="index.php" class="btn btn-secondary fw-bold">VOLVER</a>
+                    </div>
                     <div id="informe" class="row justify-content-center mb-4">
                         <div class="col-8 card">
-                            <pre class="mt-3" style="font-family: Arial, Helvetica, sans-serif">
-Bon dia,
-Adjunt l'informe de protecció de dades de l'usuari <b>XXXXX XXXXX</b>
-
-Dynamics:
-<b>XXXXX</b>
-
-e-Tram:
-<b>XXXXX</b>
-
-e-Tauler:
-<b>XXXXX</b>
-
-IdCATMobil:
-<b>XXXXX</b>
-
-EACAT PL:
-<b>XXXXX</b>
-
-REPRESENTA:
-<b>XXXXX</b>
-                   
-                            </pre>
+                            <div class="mt-3" style="font-family: Arial, Helvetica, sans-serif">
+                                <p>Bon dia,<br>Adjunt l'informe de protecció de dades de l'usuari <?php echo htmlspecialchars($nif); ?></p>
+                                <?php
+                                    foreach ($queries as $i => $q) {
+                                        echo "<p><b>Consulta " . ($i+1) . "</b></p>";
+                                        try {
+                                            $stmt = $pdo->prepare($q['sql']);
+                                            if (strpos($q['sql'], ':inputprefix') !== false) {
+                                                $param = $nif . '%';
+                                                $stmt->bindValue(':inputprefix', $param, PDO::PARAM_STR);
+                                            } else {
+                                                $stmt->bindValue(':input', $nif, PDO::PARAM_STR);
+                                            }
+                                            $stmt->execute();
+                                            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                                            echo render_table($rows);
+                                        } catch (Exception $e) {
+                                            echo "<div class=\"alert alert-danger\">Error al executar la consulta: " . htmlspecialchars($e->getMessage()) . "</div>";
+                                        }
+                                    }
+                                ?>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    <div class="text-center">
-        <a href="index.php" class="btn btn-secondary fw-bold">VOLVER</a>
-    </div>
 
     <script src="../dependencies/js/bootstrap.min.js"></script>
 </body>
-
-</html>-->
+</html>
