@@ -38,9 +38,9 @@ $queries = [
     ]
 ];
 
-// Use Oracle connection via oci8
 try {
     $conn = get_oracle_connection();
+    echo "Connected to Oracle database successfully.";
 } catch (Exception $e) {
     echo "<p>Error en la connexió a Oracle: " . htmlspecialchars($e->getMessage()) . "</p>";
     exit;
@@ -149,23 +149,20 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
                             <div class="mt-3" style="font-family: Arial, Helvetica, sans-serif">
                                 <p>Bon dia,<br>Adjunt l'informe de protecció de dades de l'usuari <?php echo htmlspecialchars($nif); ?></p>
                                 <?php
-                                    foreach ($queries as $i => $q) {
-                                        echo "<p><b>Consulta " . ($i+1) . "</b></p>";
-                                        try {
-                                            $stmt = $pdo->prepare($q['sql']);
-                                            if (strpos($q['sql'], ':inputprefix') !== false) {
-                                                $param = $nif . '%';
-                                                $stmt->bindValue(':inputprefix', $param, PDO::PARAM_STR);
-                                            } else {
-                                                $stmt->bindValue(':input', $nif, PDO::PARAM_STR);
-                                            }
-                                            $stmt->execute();
-                                            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                                            echo render_table($rows);
-                                        } catch (Exception $e) {
-                                            echo "<div class=\"alert alert-danger\">Error al executar la consulta: " . htmlspecialchars($e->getMessage()) . "</div>";
-                                        }
+                                foreach ($queries as $i => $q) {
+                                    echo "<p><b>Consulta " . ($i+1) . "</b></p>";
+                                    try {
+                                        $isLike = (strpos($q['sql'], ':inputprefix') !== false);
+                                        $rows = run_oracle_query($conn, $q['sql'], $nif, $isLike);
+                                        echo render_table($rows);
+                                    } catch (Exception $e) {
+                                        // Mensaje seguro para el usuario + info de depuración en comentario y consola
+                                        $debugMsg = 'Consulta ' . ($i+1) . ' - ' . $e->getMessage();
+                                        echo '<p>Ha ocurrido un error ejecutando la consulta. Revisa los logs.</p>';
+                                        echo '<!-- ' . htmlspecialchars($debugMsg) . ' -->';
+                                        echo '<script>console.error(' . json_encode($debugMsg) . ');</script>';
                                     }
+                                }
                                 ?>
                             </div>
                         </div>
