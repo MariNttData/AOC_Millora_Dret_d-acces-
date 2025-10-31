@@ -10,28 +10,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nif = isset($_POST['nifInput']) ? sanitize_nif($_POST['nifInput']) : '';
 }
 
+$listServices = ["ETRAM", "ETAULER", "IDCATMOBIL", "EACAT PL", "REPRESENTA"];
 $queries = [
-    // ETRAM 
+    // ETRAM KO
     [
         'type' => 'mysql',
-        'sql' => "SELECT * from ETRAM20PCI.ETRAM_TRAMIT a where a.DOCUMENT = :input"
+        'sql' => "SELECT * from ETRAM20PCI.ETRAM_TRAMIT where DOCUMENT = :input"
     ],
-    // ETAULER 
+    // ETAULER KO
     [
         'type' => 'mysql',
-        'sql' => "SELECT * from ETAULER3PL.ET_EDICTE_HISTORIC EH where eh.usuari_id = :input"
+        'sql' => "SELECT * from ETAULER3PL.ET_EDICTE_HISTORIC where usuari_id = :input"
     ],
-    // IDCATMOBIL 
+    // IDCATMOBIL OK
     [
         'type' => 'mysql',
-        'sql' => "SELECT * FROM IDCATMOBIL.IDCATSMS_REGISTRE r where r.document = :input"
+        'sql' => "SELECT * FROM IDCATMOBIL.IDCATSMS_REGISTRE where document = :input"
     ],
-    // EACAT PL
+    // EACAT PL OK
     [
         'type' => 'mysql',
-        'sql' => "SELECT * from usu_usuari a where a.identificador = :input"
+        'sql' => "SELECT * from usu_usuari where identificador = :input"
     ],
-    // REPRESENTA
+    // REPRESENTA OK
     [
         'type' => 'mysql',
         'sql' => "SELECT * from REPRESENTA.r_persona where valordocumentidentificatiu like :inputprefix"
@@ -51,13 +52,11 @@ function render_table($rows) {
         return '<p>No hi ha resultats.</p>';
     }
     $html = '<table class="table table-sm table-striped">';
-    // header
     $html .= '<thead><tr>';
     foreach (array_keys($rows[0]) as $col) {
         $html .= '<th>' . htmlspecialchars($col) . '</th>';
     }
     $html .= '</tr></thead>';
-    // body
     $html .= '<tbody>';
     foreach ($rows as $r) {
         $html .= '<tr>';
@@ -145,25 +144,18 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
                         <a href="index.php" class="btn btn-secondary fw-bold">VOLVER</a>
                     </div>
                     <div id="informe" class="row justify-content-center mb-4">
-                        <div class="col-8 card">
+                        <div class="col-9 card">
                             <div class="mt-3" style="font-family: Arial, Helvetica, sans-serif">
                                 <p>Bon dia,<br>Adjunt l'informe de protecció de dades de l'usuari <?php echo htmlspecialchars($nif); ?></p>
                                 <?php
                                 foreach ($queries as $i => $q) {
-                                    echo "<p><b>Consulta " . ($i+1) . "</b></p>";
-                                    try {
-                                        $isLike = (strpos($q['sql'], ':inputprefix') !== false);
-                                        $rows = run_oracle_query($conn, $q['sql'], $nif, $isLike);
-                                        echo render_table($rows);
-                                    } catch (Exception $e) {
-                                        // Mensaje seguro para el usuario + info de depuración en comentario y consola
-                                        $debugMsg = 'Consulta ' . ($i+1) . ' - ' . $e->getMessage();
-                                        echo '<p>Ha ocurrido un error ejecutando la consulta. Revisa los logs.</p>';
-                                        echo '<!-- ' . htmlspecialchars($debugMsg) . ' -->';
-                                        echo '<script>console.error(' . json_encode($debugMsg) . ');</script>';
-                                    }
+                                    echo "<p><b>Consulta " . $listServices[$i] . "</b></p>";
+                                    $isLike = (strpos($q['sql'], ':inputprefix') !== false);
+                                    $rows = run_oracle_query($conn, $q['sql'], $nif, $isLike);
+                                    echo render_table($rows);                                  
                                 }
                                 ?>
+                                <br>
                             </div>
                         </div>
                     </div>

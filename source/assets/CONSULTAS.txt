@@ -1,8 +1,8 @@
---Query ETRAM BD(ETRAM20PCI)
-select * from ETRAM_TRAMIT a
+--Query ETRAM
+select * from ETRAM20PCI.ETRAM_TRAMIT a
 where a.DOCUMENT = 'INPUT';
 
---Query eTAULER BD(ETAULER3PL)
+--Query eTAULER
  select *
  from ETAULER3PL.ET_EDICTE_HISTORIC EH
  where eh.usuari_id = 'INPUT';
@@ -15,5 +15,18 @@ where r.document = 'INPUT';
 select * from usu_usuari a
 where a.identificador = 'INPUT';
 
---Query representa BD(REPRESENTA)
-select * from representa.r_persona where valordocumentidentificatiu like 'INPUT%'; --DNI SIN LETRA
+--Query representa
+select * from REPRESENTA.r_persona where valordocumentidentificatiu like 'INPUT%'; --DNI SIN LETRA
+
+
+DNIs de prueba:
+ETRAM: 99999018D, 39898213K
+eTAULER: 38831038T
+IDCATMOBIL: 60795721M
+EACAT: 49248415X, 46736746X
+REPRESENTA: 46773081G
+
+VARIOS: 
+X8294116V, 78084114B KO
+40301758P (Representa y EACAT) OK  ETRAM KO
+39388727P (Representa y EACAT) OK 
