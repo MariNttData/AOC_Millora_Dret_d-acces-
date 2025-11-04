@@ -51,7 +51,7 @@ function render_table($rows) {
     if (empty($rows)) {
         return '<p>No hi ha resultats.</p>';
     }
-    $html = '<table class="table table-sm table-striped">';
+    $html = '<table class="table table-sm table-bordered table-striped">';
     $html .= '<thead><tr>';
     foreach (array_keys($rows[0]) as $col) {
         $html .= '<th>' . htmlspecialchars($col) . '</th>';
@@ -69,15 +69,6 @@ function render_table($rows) {
     return $html;
 }
 
-/**
- * Execute an Oracle query with a single input bind (':input' or ':inputprefix') and return rows as associative arrays.
- * @param resource $conn Oracle connection
- * @param string $sql SQL text with :input or :inputprefix bind
- * @param string $nif value to bind
- * @param bool $isLike whether to bind as LIKE (appends %)
- * @return array
- * @throws Exception on error
- */
 function run_oracle_query($conn, $sql, $nif, $isLike = false) {
     $stid = oci_parse($conn, $sql);
     if (!$stid) {
@@ -87,25 +78,25 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
 
     if ($isLike) {
         $param = $nif . '%';
-        if (!@oci_bind_by_name($stid, ':inputprefix', $param, -1)) {
+        if (!oci_bind_by_name($stid, ':inputprefix', $param, -1)) {
             $e = oci_error($stid);
             throw new Exception('OCI bind error: ' . ($e['message'] ?? 'unknown'));
         }
     } else {
-        if (!@oci_bind_by_name($stid, ':input', $nif, -1)) {
+        if (!oci_bind_by_name($stid, ':input', $nif, -1)) {
             $e = oci_error($stid);
             throw new Exception('OCI bind error: ' . ($e['message'] ?? 'unknown'));
         }
     }
 
-    $r = @oci_execute($stid);
-    if (!$r) {
+    if (!oci_execute($stid)) {
         $e = oci_error($stid);
         throw new Exception('OCI execute error: ' . ($e['message'] ?? 'unknown'));
     }
 
     $rows = [];
-    while (($row = oci_fetch_assoc($stid)) !== false) {
+    // Usar OCI_RETURN_LOBS para que los CLOB/BLOB se devuelvan como strings
+    while (($row = oci_fetch_array($stid, OCI_ASSOC + OCI_RETURN_LOBS)) !== false) {
         $rows[] = $row;
     }
     oci_free_statement($stid);
@@ -149,7 +140,7 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
                                 <p>Bon dia,<br>Adjunt l'informe de protecció de dades de l'usuari <?php echo htmlspecialchars($nif); ?></p>
                                 <?php
                                 foreach ($queries as $i => $q) {
-                                    echo "<p><b>Consulta " . $listServices[$i] . "</b></p>";
+                                    echo "<p><b>" . $listServices[$i] . "</b></p>";
                                     $isLike = (strpos($q['sql'], ':inputprefix') !== false);
                                     $rows = run_oracle_query($conn, $q['sql'], $nif, $isLike);
                                     echo render_table($rows);                                  
