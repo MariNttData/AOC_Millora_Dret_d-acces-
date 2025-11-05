@@ -12,27 +12,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $listServices = ["ETRAM", "ETAULER", "IDCATMOBIL", "EACAT PL", "REPRESENTA"];
 $queries = [
-    // ETRAM KO
+    // ETRAM
     [
         'type' => 'mysql',
         'sql' => "SELECT * from ETRAM20PCI.ETRAM_TRAMIT where DOCUMENT = :input"
     ],
-    // ETAULER KO
+    // ETAULER
     [
         'type' => 'mysql',
         'sql' => "SELECT * from ETAULER3PL.ET_EDICTE_HISTORIC where usuari_id = :input"
     ],
-    // IDCATMOBIL OK
+    // IDCATMOBIL
     [
         'type' => 'mysql',
         'sql' => "SELECT * FROM IDCATMOBIL.IDCATSMS_REGISTRE where document = :input"
     ],
-    // EACAT PL OK
+    // EACAT PL
     [
         'type' => 'mysql',
         'sql' => "SELECT * from usu_usuari where identificador = :input"
     ],
-    // REPRESENTA OK
+    // REPRESENTA
     [
         'type' => 'mysql',
         'sql' => "SELECT * from REPRESENTA.r_persona where valordocumentidentificatiu like :inputprefix"
@@ -51,21 +51,66 @@ function render_table($rows) {
     if (empty($rows)) {
         return '<p>No hi ha resultats.</p>';
     }
-    $html = '<table class="table table-sm table-bordered table-striped">';
+
+    $excludePatterns = ['/^xml$/i', '/xml/i'];
+    $maxVisibleLength = 200; // acortar para mostrar menos contenido en pantalla
+
+    $cols = array_keys($rows[0]);
+    $visibleCols = [];
+    foreach ($cols as $col) {
+        $exclude = false;
+        foreach ($excludePatterns as $p) {
+            if (preg_match($p, $col)) { $exclude = true; break; }
+        }
+        if (!$exclude) $visibleCols[] = $col;
+    }
+
+    $finalCols = [];
+    foreach ($visibleCols as $col) {
+        $allBinary = true;
+        $hasAny = false;
+        foreach ($rows as $r) {
+            $v = $r[$col] ?? null;
+            if ($v === null || $v === '') continue;
+            $hasAny = true;
+            $s = (string)$v;
+            if (!in_array($s, ['0', '1'], true)) { $allBinary = false; break; }
+        }
+        if ($hasAny && $allBinary) {
+            continue;
+        }
+        $finalCols[] = $col;
+    }
+
+    // wrapper con scroll y tabla compacta
+    $html = '<div class="table-wrapper"><div class="table-scroll">';
+    $html .= '<table class="table table-sm table-bordered table-striped table-compact">';
     $html .= '<thead><tr>';
-    foreach (array_keys($rows[0]) as $col) {
+    foreach ($finalCols as $col) {
         $html .= '<th>' . htmlspecialchars($col) . '</th>';
     }
     $html .= '</tr></thead>';
     $html .= '<tbody>';
     foreach ($rows as $r) {
         $html .= '<tr>';
-        foreach ($r as $v) {
-            $html .= '<td>' . htmlspecialchars((string)$v) . '</td>';
+        foreach ($finalCols as $col) {
+            $v = $r[$col] ?? '';
+            $str = (string)$v;
+            if (strlen($str) > $maxVisibleLength) {
+                $cell = '[omès: contingut molt gran]';
+                // si quieres mostrar un tooltip con el contenido completo:
+                $tooltip = htmlspecialchars(substr($str, 0, $maxVisibleLength)) . '…';
+                $cell = '<span title="' . htmlspecialchars($str) . '">' . $tooltip . '</span>';
+                $tdClass = 'col-truncate';
+            } else {
+                $cell = htmlspecialchars($str);
+                $tdClass = '';
+            }
+            $html .= '<td class="' . $tdClass . '">' . $cell . '</td>';
         }
         $html .= '</tr>';
     }
-    $html .= '</tbody></table>';
+    $html .= '</tbody></table></div></div>';
     return $html;
 }
 
@@ -112,6 +157,24 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dred d'acces</title>
     <link rel="stylesheet" href="../dependencies/css/bootstrap.min.css" />
+    <style>
+        /* tabla compacta y con scroll vertical/ horizontal */
+        .table-compact { 
+            font-size: 0.85rem; 
+            table-layout: fixed;
+            width:100%;
+        }
+        .table-compact th, .table-compact td {
+            padding: .35rem .5rem;
+            vertical-align: middle;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .table-wrapper { overflow-x: auto; width:100%; }
+        /* limitar ancho de columnas largas (ajusta si es necesario) */
+        .table-compact td.col-truncate { max-width: 220px; }
+    </style>
 </head>
 
 <body>
