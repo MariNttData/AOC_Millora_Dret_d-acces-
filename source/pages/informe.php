@@ -200,7 +200,7 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
                     <div id="informe" class="row justify-content-center mb-4">
                         <div class="col-9 card">
                             <div class="mt-3" style="font-family: Arial, Helvetica, sans-serif">
-                                <p>Bon dia,<br>Adjunt l'informe de protecció de dades de l'usuari <?php echo htmlspecialchars($nif); ?></p>
+                                <p>Bon dia,<br>Adjunt l'informe de protecció de dades de l'usuari <b><?php echo htmlspecialchars($nif); ?></b></p>
                                 <?php
                                 foreach ($queries as $i => $q) {
                                     echo "<p><b>" . $listServices[$i] . "</b></p>";
