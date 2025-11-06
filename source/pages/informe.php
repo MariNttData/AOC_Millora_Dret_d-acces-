@@ -15,7 +15,7 @@ $queries = [
     // ETRAM
     [
         'type' => 'mysql',
-        'sql' => "SELECT * from ETRAM20PCI.ETRAM_TRAMIT where DOCUMENT = :input"
+        'sql' => "SELECT ID, ID_TRAMIT,DESCRIPCIO_BREU, CODI_ENS, DOCUMENT, DATA_RECEPCIO from ETRAM20PCI.ETRAM_TRAMIT where DOCUMENT = :input"
     ],
     // ETAULER
     [
@@ -52,21 +52,10 @@ function render_table($rows) {
         return '<p>No hi ha resultats.</p>';
     }
 
-    $excludePatterns = ['/^xml$/i', '/xml/i'];
-    $maxVisibleLength = 200; // acortar para mostrar menos contenido en pantalla
-
     $cols = array_keys($rows[0]);
-    $visibleCols = [];
-    foreach ($cols as $col) {
-        $exclude = false;
-        foreach ($excludePatterns as $p) {
-            if (preg_match($p, $col)) { $exclude = true; break; }
-        }
-        if (!$exclude) $visibleCols[] = $col;
-    }
 
     $finalCols = [];
-    foreach ($visibleCols as $col) {
+    foreach ($cols as $col) {
         $allBinary = true;
         $hasAny = false;
         foreach ($rows as $r) {
@@ -82,7 +71,6 @@ function render_table($rows) {
         $finalCols[] = $col;
     }
 
-    // wrapper con scroll y tabla compacta
     $html = '<div class="table-wrapper"><div class="table-scroll">';
     $html .= '<table class="table table-sm table-bordered table-striped table-compact">';
     $html .= '<thead><tr>';
@@ -96,16 +84,8 @@ function render_table($rows) {
         foreach ($finalCols as $col) {
             $v = $r[$col] ?? '';
             $str = (string)$v;
-            if (strlen($str) > $maxVisibleLength) {
-                $cell = '[omès: contingut molt gran]';
-                // si quieres mostrar un tooltip con el contenido completo:
-                $tooltip = htmlspecialchars(substr($str, 0, $maxVisibleLength)) . '…';
-                $cell = '<span title="' . htmlspecialchars($str) . '">' . $tooltip . '</span>';
-                $tdClass = 'col-truncate';
-            } else {
-                $cell = htmlspecialchars($str);
-                $tdClass = '';
-            }
+            $cell = htmlspecialchars($str);
+            $tdClass = '';
             $html .= '<td class="' . $tdClass . '">' . $cell . '</td>';
         }
         $html .= '</tr>';
@@ -158,7 +138,7 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
     <title>Dred d'acces</title>
     <link rel="stylesheet" href="../dependencies/css/bootstrap.min.css" />
     <style>
-        /* tabla compacta y con scroll vertical/ horizontal */
+
         .table-compact { 
             font-size: 0.85rem; 
             table-layout: fixed;
@@ -172,7 +152,7 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
             text-overflow: ellipsis;
         }
         .table-wrapper { overflow-x: auto; width:100%; }
-        /* limitar ancho de columnas largas (ajusta si es necesario) */
+
         .table-compact td.col-truncate { max-width: 220px; }
     </style>
 </head>
@@ -194,9 +174,7 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
                             Enllaç a la FAQ
                         </a>
                     </div>
-                    <div class="text-center mt-4 mb-5">
-                        <a href="index.php" class="btn btn-secondary fw-bold">VOLVER</a>
-                    </div>
+                   
                     <div id="informe" class="row justify-content-center mb-4">
                         <div class="col-9 card">
                             <div class="mt-3" style="font-family: Arial, Helvetica, sans-serif">
@@ -212,6 +190,9 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
                                 <br>
                             </div>
                         </div>
+                    </div>
+                     <div class="text-center mt-4 mb-5">
+                        <a href="index.php" class="btn btn-secondary fw-bold">VOLVER</a>
                     </div>
                 </div>
             </div>
