@@ -41,7 +41,6 @@ $queries = [
 
 try {
     $conn = get_oracle_connection();
-    echo "Connected to Oracle database successfully.";
 } catch (Exception $e) {
     echo "<p>Error en la connexió a Oracle: " . htmlspecialchars($e->getMessage()) . "</p>";
     exit;
@@ -137,6 +136,7 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dred d'acces</title>
     <link rel="stylesheet" href="../dependencies/css/bootstrap.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
 
         .table-compact { 
@@ -177,8 +177,17 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
                    
                     <div id="informe" class="row justify-content-center mb-4">
                         <div class="col-9 card">
-                            <div class="mt-3" style="font-family: Arial, Helvetica, sans-serif">
-                                <p>Bon dia,<br>Adjunt l'informe de protecció de dades de l'usuari <b><?php echo htmlspecialchars($nif); ?></b></p>
+                            <div class="mt-3 p-3" style="font-family: Arial, Helvetica, sans-serif">
+                                <div class="mb-3 d-flex gap-2">
+                                    <button class="btn btn-primary btn-sm" onclick="copyToClipboard()" title="Copiar todo al portapapeles">
+                                        <i class="bi bi-clipboard"></i> Copiar Resultados
+                                    </button>
+                                    <button class="btn btn-success btn-sm" onclick="exportToPDF()" title="Exportar resultados a PDF">
+                                        <i class="bi bi-file-pdf"></i> Exportar PDF
+                                    </button>
+                                </div>
+                                <div id="reportContent">
+                                     <p>Bon dia,<br>Adjunt l'informe de protecció de dades de l'usuari <b><?php echo htmlspecialchars($nif); ?></b></p>
                                 <?php
                                 foreach ($queries as $i => $q) {
                                     echo "<p><b>" . $listServices[$i] . "</b></p>";
@@ -187,6 +196,7 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
                                     echo render_table($rows);                                  
                                 }
                                 ?>
+                                </div>
                                 <br>
                             </div>
                         </div>
@@ -200,5 +210,41 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
     </div>
 
     <script src="../dependencies/js/bootstrap.min.js"></script>
+    <script>
+        function copyToClipboard() {
+            const reportContent = document.getElementById('reportContent');
+            
+            // Crear un rango y seleccionar el contenido
+            const range = document.createRange();
+            range.selectNodeContents(reportContent);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            
+            // Copiar al portapapeles
+            try {
+                document.execCommand('copy');
+                alert('Contenido copiado al portapapeles');
+                selection.removeAllRanges();
+            } catch (err) {
+                alert('Error al copiar: ' + err);
+            }
+        }
+
+        function exportToPDF() {
+            const element = document.getElementById('reportContent');
+            const nif = "<?php echo htmlspecialchars($nif); ?>";
+            
+            const opt = {
+                margin: 10,
+                filename: 'informe_dades_' + nif + '.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
+            };
+            
+            html2pdf().set(opt).from(element).save();
+        }
+    </script>
 </body>
 </html>
