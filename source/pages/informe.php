@@ -296,7 +296,7 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
                     headerRow.eachCell((cell) => {
                         cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
                         cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-                        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B5E3A' } };
+                        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFA500' } };
                         cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
                     });
                 }
