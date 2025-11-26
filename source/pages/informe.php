@@ -214,27 +214,111 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
     </div>
 
     <script src="../dependencies/js/bootstrap.min.js"></script>
+    <!-- Bootstrap message modal -->
+    <div class="modal fade" id="messageModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="messageModalLabel"></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="messageModalBody"></div>
+            </div>
+        </div>
+    </div>
     <!-- ExcelJS para crear archivos .xlsx con estilos + FileSaver para descarga -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <script>
+        // Show a Bootstrap-styled message in the modal (global)
+        function showMessage(message, type = 'info', duration = 3000) {
+            const modalEl = document.getElementById('messageModal');
+            if (!modalEl) {
+                // fallback
+                alert(message);
+                return;
+            }
+            const modalLabel = modalEl.querySelector('#messageModalLabel');
+            const modalBody = modalEl.querySelector('#messageModalBody');
+            const header = modalEl.querySelector('.modal-header');
+
+            // clean header classes
+            header.classList.remove('bg-success','bg-danger','bg-warning','bg-info','text-white');
+
+            if (type === 'success') {
+                header.classList.add('bg-success','text-white');
+                modalLabel.textContent = 'Correcto';
+            } else if (type === 'danger' || type === 'error') {
+                header.classList.add('bg-danger','text-white');
+                modalLabel.textContent = 'Error';
+            } else if (type === 'warning') {
+                header.classList.add('bg-warning','text-white');
+                modalLabel.textContent = 'Atención';
+            } else {
+                header.classList.add('bg-info','text-white');
+                modalLabel.textContent = '';
+            }
+
+            modalBody.textContent = message;
+            const bsModal = new bootstrap.Modal(modalEl, { keyboard: true });
+            try {
+                bsModal.show();
+            } catch (e) {
+                console.error('Bootstrap modal show failed', e);
+                // fallback: use native alert
+                alert(message);
+                return;
+            }
+
+            if (duration > 0) {
+                setTimeout(() => { try { bsModal.hide(); } catch (e) {} }, duration);
+            }
+        }
+
         function copyToClipboard() {
             const reportContent = document.getElementById('reportContent');
-            
-            // Crear un rango y seleccionar el contenido
-            const range = document.createRange();
-            range.selectNodeContents(reportContent);
-            const selection = window.getSelection();
-            selection.removeAllRanges();
-            selection.addRange(range);
-            
-            // Copiar al portapapeles
-            try {
-                document.execCommand('copy');
-                alert('Contenido copiado al portapapeles');
-                selection.removeAllRanges();
-            } catch (err) {
-                alert('Error al copiar: ' + err);
+            if (!reportContent) { showMessage('No se encontró el contenido para copiar', 'warning'); return; }
+
+            const text = reportContent.innerText || reportContent.textContent || '';
+
+            // Prefer navigator.clipboard when available
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => {
+                    showMessage('Contenido copiado al portapapeles', 'success');
+                }).catch((err) => {
+                    // Fallback to textarea method
+                    fallbackCopy(text);
+                });
+                return;
+            }
+
+            // Older fallback
+            fallbackCopy(text);
+
+            function fallbackCopy(txt) {
+                try {
+                    const ta = document.createElement('textarea');
+                    ta.value = txt;
+                    // prevent scrolling to bottom
+                    ta.style.position = 'fixed';
+                    ta.style.top = '0';
+                    ta.style.left = '0';
+                    ta.style.width = '1px';
+                    ta.style.height = '1px';
+                    ta.style.padding = '0';
+                    ta.style.border = 'none';
+                    ta.style.outline = 'none';
+                    ta.style.boxShadow = 'none';
+                    ta.style.background = 'transparent';
+                    document.body.appendChild(ta);
+                    ta.select();
+                    const ok = document.execCommand('copy');
+                    document.body.removeChild(ta);
+                    if (ok) showMessage('Contenido copiado al portapapeles', 'success');
+                    else showMessage('No se pudo copiar al portapapeles', 'warning');
+                } catch (e) {
+                    showMessage('Error al copiar: ' + (e && e.message ? e.message : e), 'danger');
+                }
             }
         }
 
@@ -259,9 +343,10 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
 
             const tables = element.querySelectorAll('table.table-compact');
             if (!tables || tables.length === 0) {
-                alert('No hay tablas para exportar');
+                 showMessage('No hay tablas para exportar', 'warning');
                 return;
             }
+        
 
             const workbook = new ExcelJS.Workbook();
             workbook.creator = 'Informe';
