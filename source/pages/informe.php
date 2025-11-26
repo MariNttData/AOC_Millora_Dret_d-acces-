@@ -261,19 +261,60 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
             const wb = XLSX.utils.book_new();
 
             tables.forEach((table, idx) => {
+                // Determinar nombre de la hoja: preferir <p><b>Nombre</b></p> o texto previo
                 let sheetName = 'Sheet' + (idx + 1);
                 let prev = table.previousElementSibling;
                 while (prev) {
+                    // buscar primero un <b>
                     const b = prev.querySelector && prev.querySelector('b');
-                    if (b && b.textContent.trim()) {
+                    if (b && b.textContent && b.textContent.trim()) {
                         sheetName = b.textContent.trim().substring(0, 31);
                         break;
                     }
+                    // fallback: usar texto del elemento previo
+                    const txt = prev.textContent && prev.textContent.trim();
+                    if (txt) { sheetName = txt.substring(0, 31); break; }
                     prev = prev.previousElementSibling;
                 }
 
                 try {
-                    const ws = XLSX.utils.table_to_sheet(table);
+                    // Convertir la tabla a hoja (raw:true para conservar valores)
+                    const ws = XLSX.utils.table_to_sheet(table, { raw: true });
+
+                    // Calcular anchos aproximados por columna (en caracteres) y activar wrap
+                    const ref = ws['!ref'];
+                    if (ref) {
+                        const range = XLSX.utils.decode_range(ref);
+                        const colWidths = [];
+                        for (let C = range.s.c; C <= range.e.c; ++C) {
+                            let maxlen = 8;
+                            for (let R = range.s.r; R <= range.e.r; ++R) {
+                                const cellRef = XLSX.utils.encode_cell({ c: C, r: R });
+                                const cell = ws[cellRef];
+                                if (cell && cell.v != null) {
+                                    const sval = String(cell.v);
+                                    const lines = sval.split('\n');
+                                    const longest = lines.reduce((a, b) => Math.max(a, b.length), 0);
+                                    if (longest > maxlen) maxlen = longest;
+                                    // intentar asignar wrapText style (si SheetJS lo soporta)
+                                    try { cell.s = cell.s || {}; cell.s.alignment = Object.assign({}, cell.s.alignment, { wrapText: true }); } catch (e) {}
+                                }
+                            }
+                            const wch = Math.min(Math.max(Math.round(maxlen) + 2, 8), 60);
+                            colWidths.push({ wch: wch });
+                        }
+                        if (colWidths.length) ws['!cols'] = colWidths;
+
+                        // Intentar poner la primera fila (cabecera) en negrita
+                        for (let C = range.s.c; C <= range.e.c; ++C) {
+                            const hdrRef = XLSX.utils.encode_cell({ c: C, r: range.s.r });
+                            const hdr = ws[hdrRef];
+                            if (hdr) {
+                                try { hdr.s = hdr.s || {}; hdr.s.font = Object.assign({}, hdr.s.font, { bold: true }); } catch (e) {}
+                            }
+                        }
+                    }
+
                     XLSX.utils.book_append_sheet(wb, ws, sheetName || ('Sheet' + (idx + 1)));
                 } catch (err) {
                     const ws = XLSX.utils.aoa_to_sheet([[ 'Error al convertir tabla', (err && err.message) || '' ]]);
