@@ -214,8 +214,9 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
     </div>
 
     <script src="../dependencies/js/bootstrap.min.js"></script>
-    <!-- SheetJS (XLSX) para exportar tablas a Excel -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- ExcelJS para crear archivos .xlsx con estilos + FileSaver para descarga -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <script>
         function copyToClipboard() {
             const reportContent = document.getElementById('reportContent');
@@ -252,7 +253,7 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
             html2pdf().set(opt).from(element).save();
         }
 
-        function exportToExcel() {
+        async function exportToExcel() {
             const element = document.getElementById('reportContent');
             const nif = "<?php echo htmlspecialchars($nif); ?>";
 
@@ -262,73 +263,81 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
                 return;
             }
 
-            const wb = XLSX.utils.book_new();
+            const workbook = new ExcelJS.Workbook();
+            workbook.creator = 'Informe';
+            workbook.created = new Date();
 
             tables.forEach((table, idx) => {
-                // Determinar nombre de la hoja: buscar el contenedor .service-block más cercano
+                // Nombre de hoja desde el contenedor .service-block
                 let sheetName = 'Sheet' + (idx + 1);
                 const container = table.closest && table.closest('.service-block');
                 if (container && container.dataset && container.dataset.service) {
-                    sheetName = container.dataset.service.substring(0, 31);
+                    sheetName = String(container.dataset.service).substring(0, 31);
                 } else {
-                    // fallback: intentar texto previo
-                    let prev = table.previousElementSibling;
-                    while (prev) {
-                        const b = prev.querySelector && prev.querySelector('b');
-                        if (b && b.textContent && b.textContent.trim()) { sheetName = b.textContent.trim().substring(0,31); break; }
-                        const txt = prev.textContent && prev.textContent.trim();
-                        if (txt) { sheetName = txt.substring(0,31); break; }
-                        prev = prev.previousElementSibling;
-                    }
+                    const txt = table.previousElementSibling && table.previousElementSibling.textContent && table.previousElementSibling.textContent.trim();
+                    if (txt) sheetName = txt.substring(0,31);
+                }
+                // sanitize sheetName: remove invalid chars \ / ? * [ ] :
+                sheetName = sheetName.replace(/[\\\/\?\*\[\]\:]/g, '').substring(0,31) || ('Sheet' + (idx+1));
+
+                const ws = workbook.addWorksheet(sheetName);
+
+                // Read header
+                const thead = table.querySelector('thead');
+                const headers = [];
+                if (thead) {
+                    const ths = thead.querySelectorAll('th');
+                    ths.forEach(th => headers.push(th.textContent.trim()));
                 }
 
-                try {
-                    // Convertir la tabla a hoja (raw:true para conservar valores)
-                    const ws = XLSX.utils.table_to_sheet(table, { raw: true });
-
-                    // Calcular anchos aproximados por columna (en caracteres) y activar wrap
-                    const ref = ws['!ref'];
-                    if (ref) {
-                        const range = XLSX.utils.decode_range(ref);
-                        const colWidths = [];
-                        for (let C = range.s.c; C <= range.e.c; ++C) {
-                            let maxlen = 8;
-                            for (let R = range.s.r; R <= range.e.r; ++R) {
-                                const cellRef = XLSX.utils.encode_cell({ c: C, r: R });
-                                const cell = ws[cellRef];
-                                if (cell && cell.v != null) {
-                                    const sval = String(cell.v);
-                                    const lines = sval.split('\n');
-                                    const longest = lines.reduce((a, b) => Math.max(a, b.length), 0);
-                                    if (longest > maxlen) maxlen = longest;
-                                    // intentar asignar wrapText style (si SheetJS lo soporta)
-                                    try { cell.s = cell.s || {}; cell.s.alignment = Object.assign({}, cell.s.alignment, { wrapText: true }); } catch (e) {}
-                                }
-                            }
-                            const wch = Math.min(Math.max(Math.round(maxlen) + 2, 8), 60);
-                            colWidths.push({ wch: wch });
-                        }
-                        if (colWidths.length) ws['!cols'] = colWidths;
-
-                        // Intentar poner la primera fila (cabecera) en negrita
-                        for (let C = range.s.c; C <= range.e.c; ++C) {
-                            const hdrRef = XLSX.utils.encode_cell({ c: C, r: range.s.r });
-                            const hdr = ws[hdrRef];
-                            if (hdr) {
-                                try { hdr.s = hdr.s || {}; hdr.s.font = Object.assign({}, hdr.s.font, { bold: true }); } catch (e) {}
-                            }
-                        }
-                    }
-
-                    XLSX.utils.book_append_sheet(wb, ws, sheetName || ('Sheet' + (idx + 1)));
-                } catch (err) {
-                    const ws = XLSX.utils.aoa_to_sheet([[ 'Error al convertir tabla', (err && err.message) || '' ]]);
-                    XLSX.utils.book_append_sheet(wb, ws, sheetName || ('Sheet' + (idx + 1)));
+                if (headers.length) {
+                    const headerRow = ws.addRow(headers);
+                    // header styles
+                    headerRow.eachCell((cell) => {
+                        cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+                        cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+                        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B5E3A' } };
+                        cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
+                    });
                 }
+
+                // Read body rows
+                const tbody = table.querySelector('tbody');
+                if (tbody) {
+                    const trs = tbody.querySelectorAll('tr');
+                    trs.forEach((tr, rindex) => {
+                        const cells = [];
+                        tr.querySelectorAll('td').forEach(td => cells.push(td.textContent.trim()));
+                        const row = ws.addRow(cells);
+                        row.eachCell((cell) => {
+                            cell.alignment = { wrapText: true, vertical: 'top' };
+                            cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
+                        });
+                        // filas alternas
+                        if ((rindex % 2) === 1) {
+                            row.eachCell((cell) => {
+                                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF7F7F7' } };
+                            });
+                        }
+                    });
+                }
+
+                // Ajustar ancho de columnas según contenido
+                ws.columns.forEach((col) => {
+                    let maxLength = 10;
+                    col.eachCell({ includeEmpty: true }, (cell) => {
+                        const v = cell.value ? String(cell.value) : '';
+                        const lines = v.split('\n');
+                        const longest = lines.reduce((a,b)=>Math.max(a,b.length),0);
+                        if (longest > maxLength) maxLength = longest;
+                    });
+                    col.width = Math.min(Math.max(maxLength + 2, 8), 80);
+                });
             });
 
+            const buf = await workbook.xlsx.writeBuffer();
             const filename = 'informe_dades_' + nif + '.xlsx';
-            XLSX.writeFile(wb, filename);
+            saveAs(new Blob([buf]), filename);
         }
     </script>
 </body>
