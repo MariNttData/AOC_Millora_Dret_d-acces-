@@ -182,8 +182,8 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
                                     <button class="btn btn-primary btn-sm" onclick="copyToClipboard()" title="Copiar todo al portapapeles">
                                         <i class="bi bi-clipboard"></i> Copiar Resultados
                                     </button>
-                                    <button class="btn btn-success btn-sm" onclick="exportToPDF()" title="Exportar resultados a PDF">
-                                        <i class="bi bi-file-pdf"></i> Exportar PDF
+                                    <button class="btn btn-success btn-sm" onclick="exportToExcel()" title="Exportar resultados a Excel">
+                                        <i class="bi bi-file-earmark-excel"></i> Exportar Excel
                                     </button>
                                 </div>
                                 <div id="reportContent">
@@ -210,6 +210,8 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
     </div>
 
     <script src="../dependencies/js/bootstrap.min.js"></script>
+    <!-- SheetJS (XLSX) para exportar tablas a Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script>
         function copyToClipboard() {
             const reportContent = document.getElementById('reportContent');
@@ -244,6 +246,43 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
             };
             
             html2pdf().set(opt).from(element).save();
+        }
+
+        function exportToExcel() {
+            const element = document.getElementById('reportContent');
+            const nif = "<?php echo htmlspecialchars($nif); ?>";
+
+            const tables = element.querySelectorAll('table.table-compact');
+            if (!tables || tables.length === 0) {
+                alert('No hay tablas para exportar');
+                return;
+            }
+
+            const wb = XLSX.utils.book_new();
+
+            tables.forEach((table, idx) => {
+                let sheetName = 'Sheet' + (idx + 1);
+                let prev = table.previousElementSibling;
+                while (prev) {
+                    const b = prev.querySelector && prev.querySelector('b');
+                    if (b && b.textContent.trim()) {
+                        sheetName = b.textContent.trim().substring(0, 31);
+                        break;
+                    }
+                    prev = prev.previousElementSibling;
+                }
+
+                try {
+                    const ws = XLSX.utils.table_to_sheet(table);
+                    XLSX.utils.book_append_sheet(wb, ws, sheetName || ('Sheet' + (idx + 1)));
+                } catch (err) {
+                    const ws = XLSX.utils.aoa_to_sheet([[ 'Error al convertir tabla', (err && err.message) || '' ]]);
+                    XLSX.utils.book_append_sheet(wb, ws, sheetName || ('Sheet' + (idx + 1)));
+                }
+            });
+
+            const filename = 'informe_dades_' + nif + '.xlsx';
+            XLSX.writeFile(wb, filename);
         }
     </script>
 </body>
