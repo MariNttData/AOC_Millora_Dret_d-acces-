@@ -278,46 +278,66 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
         function copyToClipboard() {
             const reportContent = document.getElementById('reportContent');
             if (!reportContent) { showMessage('No se encontró el contenido para copiar', 'warning'); return; }
-
+            // Try to copy HTML (so pasted content keeps table structure) using Clipboard API if available
+            const html = reportContent.innerHTML;
             const text = reportContent.innerText || reportContent.textContent || '';
 
-            // Prefer navigator.clipboard when available
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(text).then(() => {
+            if (navigator.clipboard && navigator.clipboard.write) {
+                // Create ClipboardItem with both html and plain text
+                const blobHtml = new Blob([html], { type: 'text/html' });
+                const blobText = new Blob([text], { type: 'text/plain' });
+                const item = new ClipboardItem({ 'text/html': blobHtml, 'text/plain': blobText });
+                navigator.clipboard.write([item]).then(() => {
                     showMessage('Contenido copiado al portapapeles', 'success');
                 }).catch((err) => {
-                    // Fallback to textarea method
-                    fallbackCopy(text);
+                    console.warn('clipboard.write failed, falling back', err);
+                    // fallback to selection-based copy
+                    fallbackSelectionCopy();
                 });
                 return;
             }
 
-            // Older fallback
-            fallbackCopy(text);
+            // If write() not available, try writeText (will copy plain text)
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => {
+                    showMessage('Contenido copiado al portapapeles (texto)', 'success');
+                }).catch(() => {
+                    fallbackSelectionCopy();
+                });
+                return;
+            }
 
-            function fallbackCopy(txt) {
+            // Final fallback: select node contents and use document.execCommand('copy') which often preserves HTML when pasting into Excel
+            fallbackSelectionCopy();
+
+            function fallbackSelectionCopy() {
                 try {
-                    const ta = document.createElement('textarea');
-                    ta.value = txt;
-                    // prevent scrolling to bottom
-                    ta.style.position = 'fixed';
-                    ta.style.top = '0';
-                    ta.style.left = '0';
-                    ta.style.width = '1px';
-                    ta.style.height = '1px';
-                    ta.style.padding = '0';
-                    ta.style.border = 'none';
-                    ta.style.outline = 'none';
-                    ta.style.boxShadow = 'none';
-                    ta.style.background = 'transparent';
-                    document.body.appendChild(ta);
-                    ta.select();
+                    const range = document.createRange();
+                    range.selectNodeContents(reportContent);
+                    const selection = window.getSelection();
+                    selection.removeAllRanges();
+                    selection.addRange(range);
                     const ok = document.execCommand('copy');
-                    document.body.removeChild(ta);
+                    selection.removeAllRanges();
                     if (ok) showMessage('Contenido copiado al portapapeles', 'success');
                     else showMessage('No se pudo copiar al portapapeles', 'warning');
                 } catch (e) {
-                    showMessage('Error al copiar: ' + (e && e.message ? e.message : e), 'danger');
+                    // Last resort: textarea plain copy
+                    try {
+                        const ta = document.createElement('textarea');
+                        ta.value = text;
+                        ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0';
+                        ta.style.width = '1px'; ta.style.height = '1px'; ta.style.padding = '0';
+                        ta.style.border = 'none'; ta.style.outline = 'none'; ta.style.boxShadow = 'none'; ta.style.background = 'transparent';
+                        document.body.appendChild(ta);
+                        ta.select();
+                        const ok2 = document.execCommand('copy');
+                        document.body.removeChild(ta);
+                        if (ok2) showMessage('Contenido copiado al portapapeles (texto)', 'success');
+                        else showMessage('No se pudo copiar al portapapeles', 'warning');
+                    } catch (e2) {
+                        showMessage('Error al copiar: ' + (e2 && e2.message ? e2.message : e2), 'danger');
+                    }
                 }
             }
         }
