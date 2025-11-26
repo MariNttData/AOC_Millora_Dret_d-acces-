@@ -190,10 +190,14 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
                                      <p>Bon dia,<br>Adjunt l'informe de protecció de dades de l'usuari <b><?php echo htmlspecialchars($nif); ?></b></p>
                                 <?php
                                 foreach ($queries as $i => $q) {
-                                    echo "<p><b>" . $listServices[$i] . "</b></p>";
+                                    $serviceName = $listServices[$i];
                                     $isLike = (strpos($q['sql'], ':inputprefix') !== false);
                                     $rows = run_oracle_query($conn, $q['sql'], $nif, $isLike);
-                                    echo render_table($rows);                                  
+                                    // Wrap service title and table in a container with data-service so JS can read sheet names
+                                    echo '<div class="service-block" data-service="' . htmlspecialchars($serviceName) . '">';
+                                    echo '<p class="service-title">' . htmlspecialchars($serviceName) . '</p>';
+                                    echo render_table($rows);
+                                    echo '</div>';
                                 }
                                 ?>
                                 </div>
@@ -261,20 +265,21 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
             const wb = XLSX.utils.book_new();
 
             tables.forEach((table, idx) => {
-                // Determinar nombre de la hoja: preferir <p><b>Nombre</b></p> o texto previo
+                // Determinar nombre de la hoja: buscar el contenedor .service-block más cercano
                 let sheetName = 'Sheet' + (idx + 1);
-                let prev = table.previousElementSibling;
-                while (prev) {
-                    // buscar primero un <b>
-                    const b = prev.querySelector && prev.querySelector('b');
-                    if (b && b.textContent && b.textContent.trim()) {
-                        sheetName = b.textContent.trim().substring(0, 31);
-                        break;
+                const container = table.closest && table.closest('.service-block');
+                if (container && container.dataset && container.dataset.service) {
+                    sheetName = container.dataset.service.substring(0, 31);
+                } else {
+                    // fallback: intentar texto previo
+                    let prev = table.previousElementSibling;
+                    while (prev) {
+                        const b = prev.querySelector && prev.querySelector('b');
+                        if (b && b.textContent && b.textContent.trim()) { sheetName = b.textContent.trim().substring(0,31); break; }
+                        const txt = prev.textContent && prev.textContent.trim();
+                        if (txt) { sheetName = txt.substring(0,31); break; }
+                        prev = prev.previousElementSibling;
                     }
-                    // fallback: usar texto del elemento previo
-                    const txt = prev.textContent && prev.textContent.trim();
-                    if (txt) { sheetName = txt.substring(0, 31); break; }
-                    prev = prev.previousElementSibling;
                 }
 
                 try {
