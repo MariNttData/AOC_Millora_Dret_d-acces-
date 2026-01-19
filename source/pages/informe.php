@@ -180,7 +180,7 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
                             <div class="mt-3 p-3" style="font-family: Arial, Helvetica, sans-serif">
                                 <div class="mb-3 d-flex gap-2">
                                     <button class="btn btn-primary btn-sm" onclick="copyToClipboard()" title="Copiar todo al portapapeles">
-                                        <i class="bi bi-clipboard"></i> Copiar Resultados
+                                        <i class="bi bi-clipboard"></i> Copiar Resultats
                                     </button>
                                     <button class="btn btn-success btn-sm" onclick="exportToExcel()" title="Exportar resultados a Excel">
                                         <i class="bi bi-file-earmark-excel"></i> Exportar Excel
@@ -193,7 +193,6 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
                                     $serviceName = $listServices[$i];
                                     $isLike = (strpos($q['sql'], ':inputprefix') !== false);
                                     $rows = run_oracle_query($conn, $q['sql'], $nif, $isLike);
-                                    // Wrap service title and table in a container with data-service so JS can read sheet names
                                     echo '<div class="service-block" data-service="' . htmlspecialchars($serviceName) . '">';
                                     echo '<p class="service-title">' . htmlspecialchars($serviceName) . '</p>';
                                     echo render_table($rows);
@@ -206,7 +205,7 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
                         </div>
                     </div>
                      <div class="text-center mt-4 mb-5">
-                        <a href="index.php" class="btn btn-secondary fw-bold">VOLVER</a>
+                        <a href="index.php" class="btn btn-secondary fw-bold">TORNAR</a>
                     </div>
                 </div>
             </div>
@@ -214,7 +213,7 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
     </div>
 
     <script src="../dependencies/js/bootstrap.min.js"></script>
-    <!-- Bootstrap message modal -->
+
     <div class="modal fade" id="messageModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-sm modal-dialog-centered">
             <div class="modal-content">
@@ -226,15 +225,14 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
             </div>
         </div>
     </div>
-    <!-- ExcelJS para crear archivos .xlsx con estilos + FileSaver para descarga -->
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <script>
-        // Show a Bootstrap-styled message in the modal (global)
+
         function showMessage(message, type = 'info', duration = 3000) {
             const modalEl = document.getElementById('messageModal');
             if (!modalEl) {
-                // fallback
                 alert(message);
                 return;
             }
@@ -242,7 +240,6 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
             const modalBody = modalEl.querySelector('#messageModalBody');
             const header = modalEl.querySelector('.modal-header');
 
-            // clean header classes
             header.classList.remove('bg-success','bg-danger','bg-warning','bg-info','text-white');
 
             if (type === 'success') {
@@ -265,7 +262,6 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
                 bsModal.show();
             } catch (e) {
                 console.error('Bootstrap modal show failed', e);
-                // fallback: use native alert
                 alert(message);
                 return;
             }
@@ -277,37 +273,32 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
 
         function copyToClipboard() {
             const reportContent = document.getElementById('reportContent');
-            if (!reportContent) { showMessage('No se encontró el contenido para copiar', 'warning'); return; }
-            // Try to copy HTML (so pasted content keeps table structure) using Clipboard API if available
+            if (!reportContent) { showMessage('No es va trobar el contingut per a copiar', 'warning'); return; }
             const html = reportContent.innerHTML;
             const text = reportContent.innerText || reportContent.textContent || '';
 
             if (navigator.clipboard && navigator.clipboard.write) {
-                // Create ClipboardItem with both html and plain text
                 const blobHtml = new Blob([html], { type: 'text/html' });
                 const blobText = new Blob([text], { type: 'text/plain' });
                 const item = new ClipboardItem({ 'text/html': blobHtml, 'text/plain': blobText });
                 navigator.clipboard.write([item]).then(() => {
-                    showMessage('Contenido copiado al portapapeles', 'success');
+                    showMessage('Contingut copiat al portapapers', 'success');
                 }).catch((err) => {
                     console.warn('clipboard.write failed, falling back', err);
-                    // fallback to selection-based copy
                     fallbackSelectionCopy();
                 });
                 return;
             }
 
-            // If write() not available, try writeText (will copy plain text)
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 navigator.clipboard.writeText(text).then(() => {
-                    showMessage('Contenido copiado al portapapeles (texto)', 'success');
+                    showMessage('Contingut copiat al portapapers (texto)', 'success');
                 }).catch(() => {
                     fallbackSelectionCopy();
                 });
                 return;
             }
 
-            // Final fallback: select node contents and use document.execCommand('copy') which often preserves HTML when pasting into Excel
             fallbackSelectionCopy();
 
             function fallbackSelectionCopy() {
@@ -319,10 +310,9 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
                     selection.addRange(range);
                     const ok = document.execCommand('copy');
                     selection.removeAllRanges();
-                    if (ok) showMessage('Contenido copiado al portapapeles', 'success');
-                    else showMessage('No se pudo copiar al portapapeles', 'warning');
+                    if (ok) showMessage('Contingut copiat al portapapers', 'success');
+                    else showMessage('No es va poder copiar al portapapers', 'warning');
                 } catch (e) {
-                    // Last resort: textarea plain copy
                     try {
                         const ta = document.createElement('textarea');
                         ta.value = text;
@@ -333,10 +323,10 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
                         ta.select();
                         const ok2 = document.execCommand('copy');
                         document.body.removeChild(ta);
-                        if (ok2) showMessage('Contenido copiado al portapapeles (texto)', 'success');
-                        else showMessage('No se pudo copiar al portapapeles', 'warning');
+                        if (ok2) showMessage('Contingut copiat al portapapers (texto)', 'success');
+                        else showMessage('No es va poder copiar al portapapers', 'warning');
                     } catch (e2) {
-                        showMessage('Error al copiar: ' + (e2 && e2.message ? e2.message : e2), 'danger');
+                        showMessage('Error en copiar: ' + (e2 && e2.message ? e2.message : e2), 'danger');
                     }
                 }
             }
@@ -363,7 +353,7 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
 
             const tables = element.querySelectorAll('table.table-compact');
             if (!tables || tables.length === 0) {
-                 showMessage('No hay tablas para exportar', 'warning');
+                 showMessage('No hi ha taules per a exportar', 'warning');
                 return;
             }
         
@@ -372,8 +362,7 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
             workbook.creator = 'Informe';
             workbook.created = new Date();
 
-            tables.forEach((table, idx) => {
-                // Nombre de hoja desde el contenedor .service-block
+            tables.forEach((table, idx) => {ck
                 let sheetName = 'Sheet' + (idx + 1);
                 const container = table.closest && table.closest('.service-block');
                 if (container && container.dataset && container.dataset.service) {
@@ -381,13 +370,11 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
                 } else {
                     const txt = table.previousElementSibling && table.previousElementSibling.textContent && table.previousElementSibling.textContent.trim();
                     if (txt) sheetName = txt.substring(0,31);
-                }
-                // sanitize sheetName: remove invalid chars \ / ? * [ ] :
+                } ? * [ ] :
                 sheetName = sheetName.replace(/[\\\/\?\*\[\]\:]/g, '').substring(0,31) || ('Sheet' + (idx+1));
 
                 const ws = workbook.addWorksheet(sheetName);
 
-                // Read header
                 const thead = table.querySelector('thead');
                 const headers = [];
                 if (thead) {
@@ -397,7 +384,6 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
 
                 if (headers.length) {
                     const headerRow = ws.addRow(headers);
-                    // header styles
                     headerRow.eachCell((cell) => {
                         cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
                         cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
@@ -406,7 +392,6 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
                     });
                 }
 
-                // Read body rows
                 const tbody = table.querySelector('tbody');
                 if (tbody) {
                     const trs = tbody.querySelectorAll('tr');
@@ -418,7 +403,6 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
                             cell.alignment = { wrapText: true, vertical: 'top' };
                             cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
                         });
-                        // filas alternas
                         if ((rindex % 2) === 1) {
                             row.eachCell((cell) => {
                                 cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF7F7F7' } };
@@ -427,7 +411,6 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
                     });
                 }
 
-                // Ajustar ancho de columnas según contenido
                 ws.columns.forEach((col) => {
                     let maxLength = 10;
                     col.eachCell({ includeEmpty: true }, (cell) => {
