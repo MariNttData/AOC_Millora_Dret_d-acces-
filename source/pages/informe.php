@@ -179,10 +179,10 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
                         <div class="col-9 card">
                             <div class="mt-3 p-3" style="font-family: Arial, Helvetica, sans-serif">
                                 <div class="mb-3 d-flex gap-2">
-                                    <button class="btn btn-primary btn-sm" onclick="copyToClipboard()" title="Copiar todo al portapapeles">
+                                    <button class="btn btn-primary btn-sm" onclick="copyToClipboard()" title="Copiar tot al portapapers">
                                         <i class="bi bi-clipboard"></i> Copiar Resultats
                                     </button>
-                                    <button class="btn btn-success btn-sm" onclick="exportToExcel()" title="Exportar resultados a Excel">
+                                    <button class="btn btn-success btn-sm" onclick="exportToExcel()" title="Exportar resultats a Excel">
                                         <i class="bi bi-file-earmark-excel"></i> Exportar Excel
                                     </button>
                                 </div>
@@ -362,7 +362,7 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
             workbook.creator = 'Informe';
             workbook.created = new Date();
 
-            tables.forEach((table, idx) => {ck
+            tables.forEach((table, idx) => {
                 let sheetName = 'Sheet' + (idx + 1);
                 const container = table.closest && table.closest('.service-block');
                 if (container && container.dataset && container.dataset.service) {
@@ -370,7 +370,7 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
                 } else {
                     const txt = table.previousElementSibling && table.previousElementSibling.textContent && table.previousElementSibling.textContent.trim();
                     if (txt) sheetName = txt.substring(0,31);
-                } ? * [ ] :
+                }
                 sheetName = sheetName.replace(/[\\\/\?\*\[\]\:]/g, '').substring(0,31) || ('Sheet' + (idx+1));
 
                 const ws = workbook.addWorksheet(sheetName);
