@@ -244,13 +244,13 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
 
             if (type === 'success') {
                 header.classList.add('bg-success','text-white');
-                modalLabel.textContent = 'Correcto';
+                modalLabel.textContent = 'Correcte';
             } else if (type === 'danger' || type === 'error') {
                 header.classList.add('bg-danger','text-white');
                 modalLabel.textContent = 'Error';
             } else if (type === 'warning') {
                 header.classList.add('bg-warning','text-white');
-                modalLabel.textContent = 'Atención';
+                modalLabel.textContent = 'Atenció';
             } else {
                 header.classList.add('bg-info','text-white');
                 modalLabel.textContent = '';
