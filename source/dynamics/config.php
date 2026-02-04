@@ -1,15 +1,11 @@
 <?php
+require_once __DIR__ . '/../variables.env';
 
-/**
- * Configuración de Dynamics CRM
- */
-
-// Endpoints y credenciales de Microsoft/Dynamics
-define('MICROSOFT_ENDPOINT', 'https://login.microsoftonline.com');
-define('MICROSOFT_TENANT_ID', '37a8a0b9-1874-4e5d-b1f5-11040c1c07fc');
-define('MICROSOFT_CLIENT_ID', 'aae6aee2-da23-4854-8e13-1ca2d634636e');
-define('MICROSOFT_CLIENT_SECRET', 'o3J8Q~NDnL11eyJg5t3VMBNECgtW5ftpuGOUoaES');
-define('MICROSOFT_SCOPE', 'https://suportaoc.crm4.dynamics.com//.default');
-define('DYNAMICS_ENDPOINT', 'https://suportaoc.crm4.dynamics.com');
-
+// Endpoints y credenciales de Microsoft/Dynamics (Leer variables.env)
+    define('MICROSOFT_ENDPOINT', $MICROSOFT_ENDPOINT);
+    define('MICROSOFT_TENANT_ID', $MICROSOFT_TENANT_ID);
+    define('MICROSOFT_CLIENT_ID', $MICROSOFT_CLIENT_ID);
+    define('MICROSOFT_CLIENT_SECRET', $MICROSOFT_CLIENT_SECRET);
+    define('MICROSOFT_SCOPE', $MICROSOFT_SCOPE);
+    define('DYNAMICS_ENDPOINT', $DYNAMICS_ENDPOINT);
 ?>

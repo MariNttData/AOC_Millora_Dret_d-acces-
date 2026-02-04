@@ -1,15 +1,19 @@
 <?php
+require_once __DIR__ . '/../variables.env';
+
 function get_oracle_connection() {
+    global $DB_HOST, $DB_PORT, $DB_SERVICE, $DB_USER, $DB_PASS;
     // Establecer charset para la conexión
     putenv('NLS_LANG=SPANISH_SPAIN.AL32UTF8');
 
-    $host = 'ora12pro-scan.aoc.cat';
-    $port = '1521';
-    $service = 'ORA12PRO';
-    $user = 'vistaOTpro';
-    $pass = 'Phuthee6jeec';
+    // Leer variables.env
+    $host = $DB_HOST;
+    $port = $DB_PORT;
+    $service = $DB_SERVICE;
+    $user = $DB_USER;
+    $pass = $DB_PASS;
 
-    $tns = "(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=$host)(PORT=$port))(CONNECT_DATA=(SERVICE_NAME=$service)))";
+    $tns = "(DESCRIPTION=(LOAD_BALANCE=on)(ADDRESS=(PROTOCOL=TCP)(HOST=$host)(PORT=$port))(CONNECT_DATA=(SERVICE_NAME=$service)))";
     if (function_exists('oci_connect')) {
         $conn = oci_connect($user, $pass, $tns, 'AL32UTF8');
     } else {
