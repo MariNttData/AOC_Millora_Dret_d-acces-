@@ -4,12 +4,12 @@ Aplicación web para la obtención de datos de usuarios (AOC) integrada con Orac
 
 ## 📋 Tabla de Contenidos
 
-- [Requisitos del Sistema](#requisitos-del-sistema)
-- [Instalación](#instalación)
-- [Configuración](#configuración)
-- [Estructura del Proyecto](#estructura-del-proyecto)
-- [Ejecución](#ejecución)
-- [Soluciones de problemas](#solución-de-problemas)
+- [Requisitos del Sistema](#%EF%B8%8F-requisitos-del-sistema)
+- [Instalación](#-instalación)
+- [Configuración](#%EF%B8%8F-configuración)
+- [Estructura del Proyecto](#-estructura-del-proyecto)
+- [Ejecución](#-ejecución)
+- [Soluciones de problemas](#-solución-de-problemas)
 
 ## 🖥️ Requisitos del Sistema
 
