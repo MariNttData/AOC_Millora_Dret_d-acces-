@@ -5,11 +5,11 @@ Aplicació web per a l'obtenció de dades d'usuaris (AOC) integrada amb Oracle D
 ## 📋 Taula de Continguts
 
 - [Requisits del Sistema](#%EF%B8%8F-requisits-del-sistema)
-- [Instal·lació](#-instal·lació)
+- [Instal·lació](#-installació)
 - [Configuració](#%EF%B8%8F-configuració)
 - [Estructura del Projecte](#-estructura-del-projecte)
 - [Execució](#-execució)
-- [Solucions de Problemes](#-solucions-de-problemes)
+- [Solucions de Problemes](#-solució-de-problemes)
 
 ## 🖥️ Requisits del Sistema
 
@@ -53,7 +53,7 @@ cd AOC_Millora_Dret_d-acces
    cp .env.example .env
    ```
 
-2. Editar l'arxiu `.env` amb les credencials reals (veure secció [Configuració](#configuració))
+2. Editar l'arxiu `.env` amb les credencials reals (veure secció [Configuració](#%EF%B8%8F-configuració))
 
 ## ⚙️ Configuració
 
