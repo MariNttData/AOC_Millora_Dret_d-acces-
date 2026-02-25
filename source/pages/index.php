@@ -30,7 +30,7 @@
                     <form action="informe.php" method="post">
                         <div class="mb-3">
                             <label class="form-label fw-bold">Nom i cognoms <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" required>
+                            <input type="text" name="nombreInput" class="form-control" required>
                         </div>
  
                         <div class="mb-3">

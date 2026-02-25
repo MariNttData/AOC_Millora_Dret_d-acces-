@@ -1,13 +1,121 @@
 <?php
 require_once __DIR__ . '/db.php';
 
-function sanitize_nif($nif) {
+function sanitize_nif($nif)
+{
     return trim(strtoupper($nif));
 }
 
 $nif = '';
+$nombre = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nif = isset($_POST['nifInput']) ? sanitize_nif($_POST['nifInput']) : '';
+    $nombre = isset($_POST['nombreInput']) ? trim($_POST['nombreInput']) : '';
+}
+
+function get_dynamics_results($nombre)
+{
+    if (!$nombre) {
+        return [];
+    }
+
+    $results = [];
+
+    // Cargar variables de entorno
+    $envFile = __DIR__ . '/../.env';
+    if (file_exists($envFile)) {
+        $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        foreach ($lines as $line) {
+            if (strpos(trim($line), '/*') === 0 || strpos(trim($line), '*/') === 0)
+                continue;
+
+            if (strpos($line, '=') !== false && strpos(trim($line), '=') !== 0) {
+                list($key, $value) = explode('=', $line, 2);
+                $_ENV[trim($key)] = trim($value);
+                putenv(trim($key) . "=" . trim($value));
+            }
+        }
+    }
+
+    // =========================
+    // 1️⃣ Obtener token
+    // =========================
+    $tokenUrl = $_ENV['MICROSOFT_ENDPOINT'] . "/" .
+        $_ENV['MICROSOFT_TENANT_ID'] .
+        "/oauth2/v2.0/token";
+
+    $postData = [
+        'client_id' => $_ENV['MICROSOFT_CLIENT_ID'],
+        'client_secret' => $_ENV['MICROSOFT_CLIENT_SECRET'],
+        'scope' => $_ENV['MICROSOFT_SCOPE'],
+        'grant_type' => 'client_credentials'
+    ];
+
+    $ch = curl_init($tokenUrl);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($postData));
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($httpCode != 200 || !$response) {
+        return [];
+    }
+
+    $tokenData = json_decode($response, true);
+    if (!isset($tokenData['access_token'])) {
+        return [];
+    }
+
+    $accessToken = $tokenData['access_token'];
+
+    // =========================
+    // 2️⃣ Construir filtro correcto
+    // =========================
+    $nombre = trim($nombre);
+    $nombre = str_replace("'", "''", $nombre);
+
+    $filter = "contains(fullname,'$nombre') or contains(emailaddress1,'$nombre')";
+
+    $dynamicsUrl = rtrim($_ENV['DYNAMICS_ENDPOINT'], '/') .
+        "/api/data/v9.2/contacts?" .
+        "\$select=fullname,emailaddress1,telephone1,contactid" .
+        "&\$filter=" . urlencode($filter);
+
+    // =========================
+    // 3️⃣ Consultar Dynamics
+    // =========================
+    $ch = curl_init($dynamicsUrl);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Authorization: Bearer ' . $accessToken,
+        'Accept: application/json'
+    ]);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+
+    $response = curl_exec($ch);
+
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($httpCode == 200 && $response) {
+        $data = json_decode($response, true);
+
+        if (isset($data['value']) && is_array($data['value'])) {
+            foreach ($data['value'] as $row) {
+                $results[] = [
+                    'Nom complet' => $row['fullname'] ?? '',
+                    'Telèfon' => $row['telephone1'] ?? '',
+                    'Email' => $row['emailaddress1'] ?? ''
+                ];
+            }
+        }
+    }
+
+    return $results;
 }
 
 $listServices = ["ETRAM", "ETAULER", "IDCATMOBIL", "EACAT PL", "REPRESENTA"];
@@ -46,7 +154,8 @@ try {
     exit;
 }
 
-function render_table($rows) {
+function render_table($rows)
+{
     if (empty($rows)) {
         return '<p>No hi ha resultats.</p>';
     }
@@ -59,10 +168,14 @@ function render_table($rows) {
         $hasAny = false;
         foreach ($rows as $r) {
             $v = $r[$col] ?? null;
-            if ($v === null || $v === '') continue;
+            if ($v === null || $v === '')
+                continue;
             $hasAny = true;
-            $s = (string)$v;
-            if (!in_array($s, ['0', '1'], true)) { $allBinary = false; break; }
+            $s = (string) $v;
+            if (!in_array($s, ['0', '1'], true)) {
+                $allBinary = false;
+                break;
+            }
         }
         if ($hasAny && $allBinary) {
             continue;
@@ -82,7 +195,7 @@ function render_table($rows) {
         $html .= '<tr>';
         foreach ($finalCols as $col) {
             $v = $r[$col] ?? '';
-            $str = (string)$v;
+            $str = (string) $v;
             $cell = htmlspecialchars($str);
             $tdClass = '';
             $html .= '<td class="' . $tdClass . '">' . $cell . '</td>';
@@ -93,7 +206,8 @@ function render_table($rows) {
     return $html;
 }
 
-function run_oracle_query($conn, $sql, $nif, $isLike = false) {
+function run_oracle_query($conn, $sql, $nif, $isLike = false)
+{
     $stid = oci_parse($conn, $sql);
     if (!$stid) {
         $e = oci_error($conn);
@@ -138,22 +252,29 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
     <link rel="stylesheet" href="../dependencies/css/bootstrap.min.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
-
-        .table-compact { 
-            font-size: 0.85rem; 
+        .table-compact {
+            font-size: 0.85rem;
             table-layout: fixed;
-            width:100%;
+            width: 100%;
         }
-        .table-compact th, .table-compact td {
+
+        .table-compact th,
+        .table-compact td {
             padding: .35rem .5rem;
             vertical-align: middle;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
-        .table-wrapper { overflow-x: auto; width:100%; }
 
-        .table-compact td.col-truncate { max-width: 220px; }
+        .table-wrapper {
+            overflow-x: auto;
+            width: 100%;
+        }
+
+        .table-compact td.col-truncate {
+            max-width: 220px;
+        }
     </style>
 </head>
 
@@ -174,37 +295,74 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
                             Enllaç a la FAQ
                         </a>
                     </div>
-                   
+
                     <div id="informe" class="row justify-content-center mb-4">
                         <div class="col-9 card">
                             <div class="mt-3 p-3" style="font-family: Arial, Helvetica, sans-serif">
                                 <div class="mb-3 d-flex gap-2">
-                                    <button class="btn btn-primary btn-sm" onclick="copyToClipboard()" title="Copiar tot al portapapers">
+                                    <button class="btn btn-primary btn-sm" onclick="copyToClipboard()"
+                                        title="Copiar tot al portapapers">
                                         <i class="bi bi-clipboard"></i> Copiar Resultats
                                     </button>
-                                    <button class="btn btn-success btn-sm" onclick="exportToExcel()" title="Exportar resultats a Excel">
+                                    <button class="btn btn-success btn-sm" onclick="exportToExcel()"
+                                        title="Exportar resultats a Excel">
                                         <i class="bi bi-file-earmark-excel"></i> Exportar Excel
                                     </button>
                                 </div>
                                 <div id="reportContent">
-                                     <p>Bon dia,<br>Adjunt l'informe de protecció de dades de l'usuari <b><?php echo htmlspecialchars($nif); ?></b></p>
-                                <?php
-                                foreach ($queries as $i => $q) {
-                                    $serviceName = $listServices[$i];
-                                    $isLike = (strpos($q['sql'], ':inputprefix') !== false);
-                                    $rows = run_oracle_query($conn, $q['sql'], $nif, $isLike);
-                                    echo '<div class="service-block" data-service="' . htmlspecialchars($serviceName) . '">';
-                                    echo '<p class="service-title">' . htmlspecialchars($serviceName) . '</p>';
-                                    echo render_table($rows);
-                                    echo '</div>';
-                                }
-                                ?>
+                                    <p>Bon dia,<br>Adjunt l'informe de protecció de dades de l'usuari
+                                        <b><?php echo htmlspecialchars($nif); ?></b>
+                                    </p>
+                                    <!-- Cuadro Dynamics -->
+                                    <div class="card mb-3" style="border:2px solid #0078d4;">
+                                        <div class="card-header bg-primary text-white">Resultats Dynamics</div>
+                                        <div class="card-body">
+                                            <?php
+                                            $dynamicsResults = get_dynamics_results($nombre);
+
+                                            if (!empty($nombre)) {
+
+                                                if (!empty($dynamicsResults) && count($dynamicsResults) > 0) {
+
+                                                    $totalResultados = count($dynamicsResults);
+
+                                                    echo '<div class="alert alert-success">';
+                                                    echo 'S\'han trobat <b>' . $totalResultados . '</b> resultat(s) a Dynamics que contenen el nom <b>' . htmlspecialchars($nombre) . '</b>.';
+                                                    echo '</div>';
+
+                                                    echo render_table($dynamicsResults);
+
+                                                } else {
+
+                                                    echo '<div class="alert alert-warning">';
+                                                    echo 'No s\'han trobat resultats a Dynamics que contenen el nom <b>' . htmlspecialchars($nombre) . '</b>.';
+                                                    echo '</div>';
+                                                }
+
+                                            } else {
+                                                echo '<p class="text-muted">No s\'ha proporcionat cap nom per a la cerca a Dynamics.</p>';
+                                            }
+                                            ?>
+                                        </div>
+                                    </div>
+                                    <!-- Resultats Oracle (existente) -->
+                                    <?php
+                                    foreach ($queries as $i => $q) {
+                                        $serviceName = $listServices[$i];
+                                        $isLike = (strpos($q['sql'], ':inputprefix') !== false);
+                                        $rows = run_oracle_query($conn, $q['sql'], $nif, $isLike);
+                                        echo '<div class="service-block" data-service="' . htmlspecialchars($serviceName) . '">';
+                                        echo '<p class="service-title">' . htmlspecialchars($serviceName) . '</p>';
+                                        echo render_table($rows);
+                                        echo '</div>';
+                                    }
+                                    ?>
                                 </div>
                                 <br>
                             </div>
                         </div>
                     </div>
-                     <div class="text-center mt-4 mb-5">
+                    <div class="text-center mt-4 mb-5">
                         <a href="index.php" class="btn btn-secondary fw-bold">TORNAR</a>
                     </div>
                 </div>
@@ -240,19 +398,19 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
             const modalBody = modalEl.querySelector('#messageModalBody');
             const header = modalEl.querySelector('.modal-header');
 
-            header.classList.remove('bg-success','bg-danger','bg-warning','bg-info','text-white');
+            header.classList.remove('bg-success', 'bg-danger', 'bg-warning', 'bg-info', 'text-white');
 
             if (type === 'success') {
-                header.classList.add('bg-success','text-white');
+                header.classList.add('bg-success', 'text-white');
                 modalLabel.textContent = 'Correcte';
             } else if (type === 'danger' || type === 'error') {
-                header.classList.add('bg-danger','text-white');
+                header.classList.add('bg-danger', 'text-white');
                 modalLabel.textContent = 'Error';
             } else if (type === 'warning') {
-                header.classList.add('bg-warning','text-white');
+                header.classList.add('bg-warning', 'text-white');
                 modalLabel.textContent = 'Atenció';
             } else {
-                header.classList.add('bg-info','text-white');
+                header.classList.add('bg-info', 'text-white');
                 modalLabel.textContent = '';
             }
 
@@ -267,7 +425,7 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
             }
 
             if (duration > 0) {
-                setTimeout(() => { try { bsModal.hide(); } catch (e) {} }, duration);
+                setTimeout(() => { try { bsModal.hide(); } catch (e) { } }, duration);
             }
         }
 
@@ -335,7 +493,7 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
         function exportToPDF() {
             const element = document.getElementById('reportContent');
             const nif = "<?php echo htmlspecialchars($nif); ?>";
-            
+
             const opt = {
                 margin: 10,
                 filename: 'informe_dades_' + nif + '.pdf',
@@ -343,7 +501,7 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
                 html2canvas: { scale: 2 },
                 jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
             };
-            
+
             html2pdf().set(opt).from(element).save();
         }
 
@@ -353,25 +511,25 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
 
             const tables = element.querySelectorAll('table.table-compact');
             if (!tables || tables.length === 0) {
-                 showMessage('No hi ha taules per a exportar', 'warning');
+                showMessage('No hi ha taules per a exportar', 'warning');
                 return;
             }
-        
+
 
             const workbook = new ExcelJS.Workbook();
             workbook.creator = 'Informe';
             workbook.created = new Date();
 
             tables.forEach((table, idx) => {
-                let sheetName = 'Sheet' + (idx + 1);
+                let sheetName = 'Dynamics' + (idx + 1);
                 const container = table.closest && table.closest('.service-block');
                 if (container && container.dataset && container.dataset.service) {
                     sheetName = String(container.dataset.service).substring(0, 31);
                 } else {
                     const txt = table.previousElementSibling && table.previousElementSibling.textContent && table.previousElementSibling.textContent.trim();
-                    if (txt) sheetName = txt.substring(0,31);
+                    if (txt) sheetName = txt.substring(0, 31);
                 }
-                sheetName = sheetName.replace(/[\\\/\?\*\[\]\:]/g, '').substring(0,31) || ('Sheet' + (idx+1));
+                sheetName = sheetName.replace(/[\\\/\?\*\[\]\:]/g, '').substring(0, 31) || ('Sheet' + (idx + 1));
 
                 const ws = workbook.addWorksheet(sheetName);
 
@@ -388,7 +546,7 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
                         cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
                         cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
                         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFA500' } };
-                        cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
+                        cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
                     });
                 }
 
@@ -401,7 +559,7 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
                         const row = ws.addRow(cells);
                         row.eachCell((cell) => {
                             cell.alignment = { wrapText: true, vertical: 'top' };
-                            cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
+                            cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
                         });
                         if ((rindex % 2) === 1) {
                             row.eachCell((cell) => {
@@ -416,7 +574,7 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
                     col.eachCell({ includeEmpty: true }, (cell) => {
                         const v = cell.value ? String(cell.value) : '';
                         const lines = v.split('\n');
-                        const longest = lines.reduce((a,b)=>Math.max(a,b.length),0);
+                        const longest = lines.reduce((a, b) => Math.max(a, b.length), 0);
                         if (longest > maxLength) maxLength = longest;
                     });
                     col.width = Math.min(Math.max(maxLength + 2, 8), 80);
@@ -429,4 +587,5 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false) {
         }
     </script>
 </body>
+
 </html>
