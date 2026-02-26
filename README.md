@@ -39,7 +39,7 @@ cd AOC_Millora_Dret_d-acces
 **Windows:**
 1. Descarregar la DLL corresponent a la teva versió PHP (php_oci8_11g.dll)
 2. Copiar `php_oci8_11g.dll` a la carpeta `ext` de PHP
-3. Afegir a `php.ini` amb administrador de tasques:
+3. Afegir les següents extensions a php.ini amb permisos d'administrador:
    ```ini
    extension=oci8_11g;
    extension=openssl;
@@ -65,24 +65,24 @@ L'arxiu `.env` ha de contenir les següents variables. Utilitzar com a base l'ar
 # ==========================================
 # CONFIGURACIÓ DE BASE DE DADES ORACLE
 # ==========================================
-DB_HOST=nom_servidor_oracle
-DB_PORT=1521
-DB_SERVICE=nom_servei_oracle
-DB_USER=usuari_bd
-DB_PASS=contrasenya_bd
+DB_HOST=nom_servidor_oracle*
+DB_PORT=1521*
+DB_SERVICE=nom_servei_oracle*
+DB_USER=usuari_bd*
+DB_PASS=contrasenya_bd*
 
 # ==========================================
 # CONFIGURACIÓ MICROSOFT/DYNAMICS
 # ==========================================
-MICROSOFT_ENDPOINT=https://login.microsoftonline.com
-MICROSOFT_TENANT_ID=tu_tenant_id
-MICROSOFT_CLIENT_ID=tu_client_id
-MICROSOFT_CLIENT_SECRET=tu_client_secret
-MICROSOFT_SCOPE=https://nom.dynamics.com/.default
-DYNAMICS_ENDPOINT=https://nom.api.dynamics.com
+MICROSOFT_ENDPOINT=https://login.microsoftonline.com*
+MICROSOFT_TENANT_ID=tu_tenant_id*
+MICROSOFT_CLIENT_ID=tu_client_id*
+MICROSOFT_CLIENT_SECRET=tu_client_secret*
+MICROSOFT_SCOPE=https://nom.dynamics.com/.default*
+DYNAMICS_ENDPOINT=https://nom.api.dynamics.com*
 ```
 
-Les credencials a informar us les adjuntaran els developers de l'aplicació.
+*Les credencials a informar en .env es poden trobar en la carpeta SP: C:\Users\user\Consorci Administració Oberta de Catalunya\Operacions - SUPORT_TECNIC\SOFTWARE\MilloraDretdacces
 
 - **Seguretat**: Mai compartir l'arxiu `.env` amb credencials reals. Utilitzar `.gitignore` per excloure'l del repositori
 
@@ -138,4 +138,4 @@ source/
 2. Comprovar que els permisos estan correctament configurats
 3. Verificar que el CLIENT_SECRET no ha expirat
 
-Per a qualsevol problema, contactar amb Maria Jose Salar Garcia o Natalia Rebeca Lara Robles
+Per a qualsevol problema, contactar amb OTSuportTecnic@aoc.cat , nlararob@emeal.nttdata.com o msalarga@emeal.nttdata.com
