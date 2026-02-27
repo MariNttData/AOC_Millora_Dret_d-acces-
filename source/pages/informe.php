@@ -345,15 +345,30 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false)
                                             ?>
                                         </div>
                                     </div>
-                                    <!-- Resultats Oracle (existente) -->
+                                    <!-- Resultats Oracle -->
                                     <?php
                                     foreach ($queries as $i => $q) {
                                         $serviceName = $listServices[$i];
                                         $isLike = (strpos($q['sql'], ':inputprefix') !== false);
                                         $rows = run_oracle_query($conn, $q['sql'], $nif, $isLike);
-                                        echo '<div class="service-block" data-service="' . htmlspecialchars($serviceName) . '">';
-                                        echo '<p class="service-title">' . htmlspecialchars($serviceName) . '</p>';
-                                        echo render_table($rows);
+                                        
+                                        echo '<div class="card mb-3" style="border:2px solid #0078d4;">';
+                                        echo '<div class="card-header bg-primary text-white">' . htmlspecialchars($serviceName) . '</div>';
+                                        echo '<div class="card-body">';
+                                        
+                                        if (!empty($rows) && count($rows) > 0) {
+                                            $totalResultados = count($rows);
+                                            echo '<div class="alert alert-success">';
+                                            echo 'S\'han trobat <b>' . $totalResultados . '</b> resultat(s) a ' . htmlspecialchars($serviceName) . '.';
+                                            echo '</div>';
+                                            echo render_table($rows);
+                                        } else {
+                                            echo '<div class="alert alert-warning">';
+                                            echo 'No s\'han trobat resultats a ' . htmlspecialchars($serviceName) . '.';
+                                            echo '</div>';
+                                        }
+                                        
+                                        echo '</div>';
                                         echo '</div>';
                                     }
                                     ?>
@@ -521,13 +536,13 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false)
             workbook.created = new Date();
 
             tables.forEach((table, idx) => {
-                let sheetName = 'Dynamics' + (idx + 1);
-                const container = table.closest && table.closest('.service-block');
-                if (container && container.dataset && container.dataset.service) {
-                    sheetName = String(container.dataset.service).substring(0, 31);
-                } else {
-                    const txt = table.previousElementSibling && table.previousElementSibling.textContent && table.previousElementSibling.textContent.trim();
-                    if (txt) sheetName = txt.substring(0, 31);
+                let sheetName = 'Sheet' + (idx + 1);
+                const card = table.closest && table.closest('.card');
+                if (card) {
+                    const cardHeader = card.querySelector('.card-header');
+                    if (cardHeader) {
+                        sheetName = cardHeader.textContent.trim();
+                    }
                 }
                 sheetName = sheetName.replace(/[\\\/\?\*\[\]\:]/g, '').substring(0, 31) || ('Sheet' + (idx + 1));
 
