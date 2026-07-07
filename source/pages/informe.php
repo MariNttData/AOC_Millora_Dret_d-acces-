@@ -8,14 +8,19 @@ function sanitize_nif($nif)
 
 $nif = '';
 $nombre = '';
+$telefono = '';
+$email = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nif = isset($_POST['nifInput']) ? sanitize_nif($_POST['nifInput']) : '';
     $nombre = isset($_POST['nombreInput']) ? trim($_POST['nombreInput']) : '';
+    $telefono = isset($_POST['telefonoInput']) ? trim($_POST['telefonoInput']) : '';
+    $email = isset($_POST['emailInput']) ? trim($_POST['emailInput']) : '';
 }
 
-function get_dynamics_results($nombre)
+function get_dynamics_results($searchValue, $searchType = 'name')
 {
-    if (!$nombre) {
+    $searchValue = trim((string) $searchValue);
+    if ($searchValue === '') {
         return [];
     }
 
@@ -75,10 +80,15 @@ function get_dynamics_results($nombre)
     // =========================
     // 2️⃣ Construir filtro correcto
     // =========================
-    $nombre = trim($nombre);
-    $nombre = str_replace("'", "''", $nombre);
+    $searchValue = str_replace("'", "''", $searchValue);
 
-    $filter = "contains(fullname,'$nombre') or contains(emailaddress1,'$nombre')";
+    if ($searchType === 'telefono') {
+        $filter = "contains(telephone1,'$searchValue')";
+    } elseif ($searchType === 'email') {
+        $filter = "contains(emailaddress1,'$searchValue')";
+    } else {
+        $filter = "contains(fullname,'$searchValue') or contains(emailaddress1,'$searchValue')";
+    }
 
     $dynamicsUrl = rtrim($_ENV['DYNAMICS_ENDPOINT'], '/') .
         "/api/data/v9.2/contacts?" .
@@ -313,38 +323,62 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false)
                                     <p>Bon dia,<br>Adjunt l'informe de protecció de dades de l'usuari
                                         <b><?php echo htmlspecialchars($nif); ?></b>
                                     </p>
-                                    <!-- Cuadro Dynamics -->
-                                    <div class="card mb-3" style="border:2px solid #0078d4;">
-                                        <div class="card-header bg-primary text-white">Resultats Dynamics</div>
-                                        <div class="card-body">
-                                            <?php
-                                            $dynamicsResults = get_dynamics_results($nombre);
+                                    <?php
+                                    $dynamicsSearches = [];
+                                    if (!empty($nombre)) {
+                                        $dynamicsSearches[] = ['label' => 'Nom', 'value' => $nombre, 'type' => 'name'];
+                                    }
+                                    if (!empty($telefono)) {
+                                        $dynamicsSearches[] = ['label' => 'Telèfon', 'value' => $telefono, 'type' => 'telefono'];
+                                    }
+                                    if (!empty($email)) {
+                                        $dynamicsSearches[] = ['label' => 'Correu electrònic', 'value' => $email, 'type' => 'email'];
+                                    }
 
-                                            if (!empty($nombre)) {
+                                    foreach ($dynamicsSearches as $search) {
+                                        $dynamicsResults = get_dynamics_results($search['value'], $search['type']);
+                                        echo '<div class="card mb-3" style="border:2px solid #0078d4;">';
+                                        echo '<div class="card-header bg-primary text-white">Resultats Dynamics - ' . htmlspecialchars($search['label']) . '</div>';
+                                        echo '<div class="card-body">';
 
-                                                if (!empty($dynamicsResults) && count($dynamicsResults) > 0) {
-
-                                                    $totalResultados = count($dynamicsResults);
-
-                                                    echo '<div class="alert alert-success">';
-                                                    echo 'S\'han trobat <b>' . $totalResultados . '</b> resultat(s) a Dynamics que contenen el nom <b>' . htmlspecialchars($nombre) . '</b>.';
-                                                    echo '</div>';
-
-                                                    echo render_table($dynamicsResults);
-
-                                                } else {
-
-                                                    echo '<div class="alert alert-warning">';
-                                                    echo 'No s\'han trobat resultats a Dynamics que contenen el nom <b>' . htmlspecialchars($nombre) . '</b>.';
-                                                    echo '</div>';
-                                                }
-
+                                        if (!empty($dynamicsResults) && count($dynamicsResults) > 0) {
+                                            $totalResultados = count($dynamicsResults);
+                                            $descriptor = '';
+                                            if ($search['type'] === 'telefono') {
+                                                $descriptor = 'el telèfon';
+                                            } elseif ($search['type'] === 'email') {
+                                                $descriptor = 'el correu electrònic';
                                             } else {
-                                                echo '<p class="text-muted">No s\'ha proporcionat cap nom per a la cerca a Dynamics.</p>';
+                                                $descriptor = 'el nom';
                                             }
-                                            ?>
-                                        </div>
-                                    </div>
+
+                                            echo '<div class="alert alert-success">';
+                                            echo 'S\'han trobat <b>' . $totalResultados . '</b> resultat(s) a Dynamics que contenen ' . $descriptor . ' <b>' . htmlspecialchars($search['value']) . '</b>.';
+                                            echo '</div>';
+                                            echo render_table($dynamicsResults);
+                                        } else {
+                                            $descriptor = '';
+                                            if ($search['type'] === 'telefono') {
+                                                $descriptor = 'el telèfon';
+                                            } elseif ($search['type'] === 'email') {
+                                                $descriptor = 'el correu electrònic';
+                                            } else {
+                                                $descriptor = 'el nom';
+                                            }
+
+                                            echo '<div class="alert alert-warning">';
+                                            echo 'No s\'han trobat resultats a Dynamics que contenen ' . $descriptor . ' <b>' . htmlspecialchars($search['value']) . '</b>.';
+                                            echo '</div>';
+                                        }
+
+                                        echo '</div>';
+                                        echo '</div>';
+                                    }
+
+                                    if (empty($dynamicsSearches)) {
+                                        echo '<div class="alert alert-info">No s\'ha proporcionat cap nom, telèfon o correu electrònic per a la cerca a Dynamics.</div>';
+                                    }
+                                    ?>
                                     <!-- Resultats Oracle -->
                                     <?php
                                     foreach ($queries as $i => $q) {

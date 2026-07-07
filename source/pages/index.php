@@ -44,13 +44,13 @@
  
                         <div class="mb-3">
                             <label class="form-label fw-bold">Correu Electrònic</label>
-                            <input type="text" id="mail" class="form-control">
+                            <input type="text" name="emailInput" id="mail" class="form-control">
                             <div class="invalid-feedback" id="emailError"></div>
                         </div>
  
                         <div class="mb-3">
                             <label class="form-label fw-bold">Telèfon</label>
-                            <input type="tel" class="form-control">
+                            <input type="tel" name="telefonoInput" class="form-control">
                             <div class="invalid-feedback" id="telError"></div>
                         </div>
  
