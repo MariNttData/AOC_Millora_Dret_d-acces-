@@ -17,7 +17,7 @@ Aplicació web per a l'obtenció de dades d'usuaris (AOC) integrada amb Oracle D
 
 - **PHP**: 7.4.33 x86
 - **ZTS Visual C++**: 2017 x86
-- **Oracle Instant Client**: 19.28.0.0.0 x86 linux
+- **Oracle Instant Client**: 11.02.0.1.0 x86
 - **Servidor Web**: Apache o extensió de Visual Studio Code: PHP Server
 - **Node.js**: v22.17.0
 
