@@ -15,10 +15,11 @@ Aplicació web per a l'obtenció de dades d'usuaris (AOC) integrada amb Oracle D
 
 ### Versions Necessàries
 
-- **PHP**: 7.4.33 x86
-- **ZTS Visual C++**: 2017 x86
-- **Oracle Instant Client**: 19.28.0.0.0 x86 linux
-- **Servidor Web**: Apache o extensió de Visual Studio Code: PHP Server
+- **PHP**: 8.5.12 x86, Thread Safe (TS/ZTS), VS17
+- **OCI8**: 3.4.0, compilat per a PHP 8.5 TS, x86 i VS17
+- **Oracle Instant Client**: 21.23 per a Windows de 32 bits (x86)
+- **Microsoft Visual C++ Redistributable**: 2015-2022, x86
+- **Servidor Web**: Extensió de Visual Studio Code: PHP Server
 - **Node.js**: v22.17.0
 
 ## 📦 Instal·lació
@@ -30,30 +31,38 @@ git clone <url-del-repositori>
 cd AOC_Millora_Dret_d-acces
 ```
 
-### Pas 2: Instal·lar Requisits del Sistema
+### Pas 2: Instal·lar PHP i les extensions necessàries (Windows)
 
-### Pas 3: Instal·lar Extensions PHP
-
-#### OCI8 (Connexió a Oracle)
-
-**Windows:**
-1. Descarregar la DLL corresponent a la teva versió PHP (php_oci8_11g.dll)
-2. Copiar `php_oci8_11g.dll` a la carpeta `ext` de PHP
-3. Afegir les següents extensions a php.ini amb permisos d'administrador:
+1. Descarregar PHP 8.5.12 per a Windows x86, Thread Safe (TS), VS17 des de [PHP for Windows](https://windows.php.net/download/). Extreure'l, per exemple, a `C:\Program Files (x86)\php-8.5.12-1-Win32-vs17-x86`.
+2. Instal·lar el [Microsoft Visual C++ Redistributable 2015-2022](https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist) de 32 bits (x86).
+3. Crear `php.ini` a la carpeta de PHP copiant-hi `php.ini-development`. Editar-lo com a administrador i configurar la carpeta `ext` i les extensions necessàries:
    ```ini
-   extension=oci8_11g;
-   extension=openssl;
-   extension=curl;
+   extension_dir = "C:\Program Files (x86)\php-8.5.12-1-Win32-vs17-x86\ext"
+   extension=curl
+   extension=openssl
+   extension=php_oci8_19.dll
    ```
-
-### Pas 4: Configurar el Projecte
-
-1. Copiar l'arxiu de variables d'entorn:
-   ```bash
-   cp .env.example .env
+4. Descarregar OCI8 3.4.0 des de [PECL - OCI8 per a Windows](https://pecl.php.net/package/oci8/3.4.0/windows). Escollir exactament el paquet **PHP 8.5, Thread Safe (TS), x86, VS17** (`php_oci8-3.4.0-8.5-ts-vs17-x86.zip`) i copiar `php_oci8_19.dll` a la carpeta `ext` de PHP indicada a `extension_dir`.
+5. Descarregar el paquet **Basic** d'Oracle Instant Client 21.23 per a [Windows de 32 bits](https://www.oracle.com/database/technologies/instant-client/microsoft-windows-32-downloads.html). Descomprimir-lo, per exemple, a `C:\oracle\instantclient_21_23`. Afegir al `Path` de Windows la carpeta que conté `oci.dll` (la carpeta extreta `instantclient_21_23`, no la carpeta pare).
+6. Després de modificar el `Path`, tancar i tornar a obrir VS Code/terminals i reiniciar el servidor web perquè hereti el canvi.
+7. Obrir una terminal nova i comprovar que PHP carrega les extensions i troba Oracle:
+   ```powershell
+   php --ini
+   php -m | findstr /i "curl openssl oci8"
+   php --ri oci8
+   where.exe oci.dll
    ```
+   `php --ini` ha d'indicar el `php.ini` creat al pas 3; `php --ri oci8` ha de mostrar `OCI8 Support => enabled` i `where.exe oci.dll` ha de mostrar primer la ruta de l'Instant Client nou.
 
-2. Editar l'arxiu `.env` amb les credencials reals (veure secció [Configuració](#%EF%B8%8F-configuració))
+> Si utilitzes PHP Server, XAMPP, WAMP o Apache, comprova també el `php.ini` i la versió de PHP que utilitza el servidor web: poden ser diferents dels de la terminal. Reinicia el servidor després de canviar la configuració.
+
+### Pas 3: Configurar el Projecte
+
+1. Copiar `source/.env.example` com a `source/.env` (a PowerShell, des de l'arrel del projecte):
+   ```powershell
+   Copy-Item source\.env.example source\.env
+   ```
+2. Editar `source/.env` amb les credencials reals (veure secció [Configuració](#%EF%B8%8F-configuració)).
 
 ## ⚙️ Configuració
 
@@ -109,24 +118,29 @@ source/
 
 ## 🚀 Execució
 
-### Opció 1: Amb Apache (XAMPP/WAMP)
+### Opció 1: Amb el servidor integrat de PHP (recomanat per al desenvolupament)
 
-1. Copiar la carpeta del projecte a `htdocs/` (XAMPP) o `www/` (WAMP)
-2. Iniciar Apache
-3. Accedir a: `http://localhost/AOC_Millora_Dret_d-acces/source/pages/`
+Des de l'arrel del projecte, en una terminal nova:
 
-### Opció 2: Amb extensió VSC (PHP Server)
+```powershell
+php -S localhost:3000 -t source
+```
 
-1. Click dret sobre la pantalla de index.php i "PHP Server: serve project"
-2. S'obrirà una finestra en Google amb el servidor llençat
+Accedir a `http://localhost:3000/pages/index.php`. Aturar el servidor amb `Ctrl+C`.
+
+### Opció 2: Amb Apache (XAMPP/WAMP) o l'extensió PHP Server de VS Code
+
+Configurar el servidor perquè utilitzi la mateixa instal·lació de PHP 8.5.12, el mateix `php.ini` i el `Path` de l'Oracle Instant Client. Copiar la carpeta del projecte a `htdocs/` (XAMPP) o `www/` (WAMP), iniciar Apache i accedir a `http://localhost/AOC_Millora_Dret_d-acces/source/pages/index.php`. Si s'utilitza PHP Server, iniciar-lo des de `source` i comprovar el PHP que executa.
 
 ## 🆘 Solució de Problemes
 
-### Error: "OCI8 extension is not available"
+### Error: "OCI8 extension is not available" o "Unable to load dynamic library"
 
-1. Verificar que l'extensió està instal·lada: `php -m | grep oci8`
-2. Reiniciar el servidor web
-3. Verificar la ruta del Oracle Instant Client a PATH
+1. Comprovar que `extension=php_oci8_19.dll` està activa al `php.ini` que carrega el servidor (`php --ini` per a la terminal; `source/dynamics/diagnostico.php` per al servidor web).
+2. Comprovar que la DLL és a la carpeta `ext` d'aquella instal·lació de PHP i que correspon a PHP 8.5 TS x86 VS17.
+3. Comprovar que `where.exe oci.dll` troba primer la carpeta de l'Instant Client per a Windows x86. La carpeta afegida al `Path` ha de contenir `oci.dll`.
+4. Tancar i tornar a obrir VS Code/terminals i reiniciar el servidor web. El `Path` modificat només a `$env:Path` afecta la terminal actual.
+5. Verificar amb `php --ri oci8` i tornar a carregar `http://localhost:3000/dynamics/diagnostico.php` si el servidor web encara no carrega OCI8 quan s'inicia des de l'arrel del projecte amb el servidor integrat.
 
 ### Error de Connexió a Oracle
 

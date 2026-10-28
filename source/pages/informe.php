@@ -64,7 +64,9 @@ function get_dynamics_results($searchValue, $searchType = 'name')
 
     $response = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
+    if (PHP_VERSION_ID < 80000) {
+        curl_close($ch);
+    }
 
     if ($httpCode != 200 || !$response) {
         return [];
@@ -109,7 +111,9 @@ function get_dynamics_results($searchValue, $searchType = 'name')
     $response = curl_exec($ch);
 
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
+    if (PHP_VERSION_ID < 80000) {
+        curl_close($ch);
+    }
 
     if ($httpCode == 200 && $response) {
         $data = json_decode($response, true);
@@ -159,9 +163,10 @@ $queries = [
 
 try {
     $conn = get_oracle_connection();
+    $oracleError = null;
 } catch (Exception $e) {
-    echo "<p>Error en la connexió a Oracle: " . htmlspecialchars($e->getMessage()) . "</p>";
-    exit;
+    $conn = null;
+    $oracleError = $e->getMessage();
 }
 
 function render_table($rows)
@@ -381,29 +386,33 @@ function run_oracle_query($conn, $sql, $nif, $isLike = false)
                                     ?>
                                     <!-- Resultats Oracle -->
                                     <?php
-                                    foreach ($queries as $i => $q) {
-                                        $serviceName = $listServices[$i];
-                                        $isLike = (strpos($q['sql'], ':inputprefix') !== false);
-                                        $rows = run_oracle_query($conn, $q['sql'], $nif, $isLike);
-                                        
-                                        echo '<div class="card mb-3" style="border:2px solid #0078d4;">';
-                                        echo '<div class="card-header bg-primary text-white">' . htmlspecialchars($serviceName) . '</div>';
-                                        echo '<div class="card-body">';
-                                        
-                                        if (!empty($rows) && count($rows) > 0) {
-                                            $totalResultados = count($rows);
-                                            echo '<div class="alert alert-success">';
-                                            echo 'S\'han trobat <b>' . $totalResultados . '</b> resultat(s) a ' . htmlspecialchars($serviceName) . '.';
+                                    if ($oracleError !== null) {
+                                        echo '<div class="alert alert-danger">No s\'han pogut consultar les dades d\'Oracle: ' . htmlspecialchars($oracleError) . '</div>';
+                                    } else {
+                                        foreach ($queries as $i => $q) {
+                                            $serviceName = $listServices[$i];
+                                            $isLike = (strpos($q['sql'], ':inputprefix') !== false);
+                                            $rows = run_oracle_query($conn, $q['sql'], $nif, $isLike);
+
+                                            echo '<div class="card mb-3" style="border:2px solid #0078d4;">';
+                                            echo '<div class="card-header bg-primary text-white">' . htmlspecialchars($serviceName) . '</div>';
+                                            echo '<div class="card-body">';
+
+                                            if (!empty($rows) && count($rows) > 0) {
+                                                $totalResultados = count($rows);
+                                                echo '<div class="alert alert-success">';
+                                                echo 'S\'han trobat <b>' . $totalResultados . '</b> resultat(s) a ' . htmlspecialchars($serviceName) . '.';
+                                                echo '</div>';
+                                                echo render_table($rows);
+                                            } else {
+                                                echo '<div class="alert alert-warning">';
+                                                echo 'No s\'han trobat resultats a ' . htmlspecialchars($serviceName) . '.';
+                                                echo '</div>';
+                                            }
+
                                             echo '</div>';
-                                            echo render_table($rows);
-                                        } else {
-                                            echo '<div class="alert alert-warning">';
-                                            echo 'No s\'han trobat resultats a ' . htmlspecialchars($serviceName) . '.';
                                             echo '</div>';
                                         }
-                                        
-                                        echo '</div>';
-                                        echo '</div>';
                                     }
                                     ?>
                                 </div>
