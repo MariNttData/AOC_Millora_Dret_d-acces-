@@ -15,11 +15,10 @@ Aplicació web per a l'obtenció de dades d'usuaris (AOC) integrada amb Oracle D
 
 ### Versions Necessàries
 
-- **PHP**: 8.5.12 x86, Thread Safe (TS/ZTS), VS17
-- **OCI8**: 3.4.0, compilat per a PHP 8.5 TS, x86 i VS17
-- **Oracle Instant Client**: 21.23 per a Windows de 32 bits (x86)
-- **Microsoft Visual C++ Redistributable**: 2015-2022, x86
-- **Servidor Web**: Extensió de Visual Studio Code: PHP Server
+- **PHP**: 7.4.33 x86
+- **ZTS Visual C++**: 2017 x86
+- **Oracle Instant Client**: 19.28.0.0.0 x86 linux
+- **Servidor Web**: Apache o extensió de Visual Studio Code: PHP Server
 - **Node.js**: v22.17.0
 
 ## 📦 Instal·lació
