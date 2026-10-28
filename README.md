@@ -15,9 +15,10 @@ Aplicació web per a l'obtenció de dades d'usuaris (AOC) integrada amb Oracle D
 
 ### Versions Necessàries
 
-- **PHP**: 7.4.33 x86
-- **ZTS Visual C++**: 2017 x86
-- **Oracle Instant Client**: 19.28.0.0.0 x86 linux
+- **PHP**: 8.5.12 x86, Thread Safe (TS/ZTS), VS17
+- **OCI8**: 3.4.0 per a PHP 8.5 TS, x86 i VS17
+- **Oracle Instant Client**: 21.23 per a Windows de 32 bits (x86)
+- **Microsoft Visual C++ Redistributable**: 2015-2022, x86
 - **Servidor Web**: Apache o extensió de Visual Studio Code: PHP Server
 - **Node.js**: v22.17.0
 
@@ -42,7 +43,7 @@ cd AOC_Millora_Dret_d-acces
    extension=php_oci8_19.dll
    ```
 4. Descarregar OCI8 3.4.0 des de [PECL - OCI8 per a Windows](https://pecl.php.net/package/oci8/3.4.0/windows). Escollir exactament el paquet **PHP 8.5, Thread Safe (TS), x86, VS17** (`php_oci8-3.4.0-8.5-ts-vs17-x86.zip`) i copiar `php_oci8_19.dll` a la carpeta `ext` de PHP indicada a `extension_dir`.
-5. Descarregar el paquet **Basic** d'Oracle Instant Client 21.23 per a [Windows de 32 bits](https://www.oracle.com/database/technologies/instant-client/microsoft-windows-32-downloads.html). Descomprimir-lo, per exemple, a `C:\oracle\instantclient_21_23`. Afegir al `Path` de Windows la carpeta que conté `oci.dll` (la carpeta extreta `instantclient_21_23`, no la carpeta pare).
+5. Descarregar el paquet **Basic** d'Oracle Instant Client 21.23 per a [Windows de 32 bits](https://www.oracle.com/database/technologies/instant-client/microsoft-windows-32-downloads.html). Descomprimir-lo; per exemple, el ZIP pot crear `C:\oracle\instantclient-basic-nt-21.23.0.0.0dbru\instantclient_21_23`. Afegir al `Path` de Windows la carpeta que conté `oci.dll` (la carpeta `instantclient_21_23`, no la carpeta pare).
 6. Després de modificar el `Path`, tancar i tornar a obrir VS Code/terminals i reiniciar el servidor web perquè hereti el canvi.
 7. Obrir una terminal nova i comprovar que PHP carrega les extensions i troba Oracle:
    ```powershell
